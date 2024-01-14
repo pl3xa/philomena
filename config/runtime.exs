@@ -110,7 +110,7 @@ if config_env() != :test do
     ownership_timeout: 60_000
 end
 
-if config_env() == :prod do
+if config_env() == :prod || System.get_env("FAKE_ENV", "dev") == "prod" do
   # Production mailer config
   config :philomena, Philomena.Mailer,
     adapter: Bamboo.SMTPAdapter,
@@ -120,16 +120,17 @@ if config_env() == :prod do
     username: System.fetch_env!("SMTP_USERNAME"),
     password: System.fetch_env!("SMTP_PASSWORD"),
     tls: :always,
+    tls_verify: :verify_none,
     auth: :always
 
   # Production endpoint config
-  {:ok, ip} = :inet.parse_address(System.get_env("APP_IP", "127.0.0.1") |> String.to_charlist())
+ # {:ok, ip} = :inet.parse_address(System.get_env("APP_IP", "127.0.0.1") |> String.to_charlist())
 
   config :philomena, PhilomenaWeb.Endpoint,
-    http: [ip: ip, port: {:system, "PORT"}],
+#    http: [ip: ip, port: {:system, "PORT"}],
     url: [host: System.fetch_env!("APP_HOSTNAME"), scheme: "https", port: 443],
-    secret_key_base: System.fetch_env!("SECRET_KEY_BASE"),
-    server: not is_nil(System.get_env("START_ENDPOINT"))
+    secret_key_base: System.fetch_env!("SECRET_KEY_BASE")
+#    server: not is_nil(System.get_env("START_ENDPOINT"))
 else
   # Don't send email in development
   config :philomena, Philomena.Mailer, adapter: Bamboo.LocalAdapter
