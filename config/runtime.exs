@@ -106,26 +106,27 @@ if config_env() != :test do
     queue_interval: 20_000
 end
 
-if config_env() == :prod do
+if config_env() == :prod || System.get_env("FAKE_ENV", "dev") == "prod" do
   # Production mailer config
   config :philomena, Philomena.Mailer,
-    adapter: Swoosh.Adapters.Mua,
-    relay: System.fetch_env!("SMTP_RELAY"),
-    port: String.to_integer(System.get_env("SMTP_PORT", "587")),
-    auth: [
-      username: System.fetch_env!("SMTP_USERNAME"),
-      password: System.fetch_env!("SMTP_PASSWORD")
-    ],
-    ssl: [middlebox_comp_mode: false]
+    adapter: Bamboo.SMTPAdapter,
+    server: System.fetch_env!("SMTP_RELAY"),
+    hostname: System.fetch_env!("SMTP_DOMAIN"),
+    port: System.get_env("SMTP_PORT") || 587,
+    username: System.fetch_env!("SMTP_USERNAME"),
+    password: System.fetch_env!("SMTP_PASSWORD"),
+    tls: :always,
+    tls_verify: :verify_none,
+    auth: :always
 
   # Production endpoint config
-  {:ok, ip} = :inet.parse_address(System.get_env("APP_IP", "127.0.0.1") |> String.to_charlist())
+ # {:ok, ip} = :inet.parse_address(System.get_env("APP_IP", "127.0.0.1") |> String.to_charlist())
 
   config :philomena, PhilomenaWeb.Endpoint,
     http: [ip: ip, port: System.fetch_env!("PORT")],
     url: [host: System.fetch_env!("APP_HOSTNAME"), scheme: "https", port: 443],
-    secret_key_base: System.fetch_env!("SECRET_KEY_BASE"),
-    server: not is_nil(System.get_env("START_ENDPOINT"))
+    secret_key_base: System.fetch_env!("SECRET_KEY_BASE")
+#    server: not is_nil(System.get_env("START_ENDPOINT"))
 else
   # Don't send email in development
   config :philomena, Philomena.Mailer, adapter: Swoosh.Adapters.Local
