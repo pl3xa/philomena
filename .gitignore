@@ -1,3 +1,9 @@
+rclone.conf
+*.age
+# to kill git seeing docker compose changes:
+# git update-index --assume-unchanged docker-compose.yml
+
+
 # The directory Mix will write compiled artifacts to.
 /_build/
 
