@@ -106,7 +106,7 @@ if config_env() != :test do
     queue_interval: 20_000
 end
 
-if config_env() == :prod do
+if config_env() == :prod || System.get_env("FAKE_ENV", "dev") == "prod" do
   # Production mailer config
   config :philomena, Philomena.Mailer,
     adapter: Swoosh.Adapters.Mua,
