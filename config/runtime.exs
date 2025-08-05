@@ -119,7 +119,7 @@ if config_env() == :prod || System.get_env("FAKE_ENV", "dev") == "prod" do
     ssl: [middlebox_comp_mode: false]
 
   # Production endpoint config
-  {:ok, ip} = :inet.parse_address(System.get_env("APP_IP", "127.0.0.1") |> String.to_charlist())
+  # {:ok, ip} = :inet.parse_address(System.get_env("APP_IP", "127.0.0.1") |> String.to_charlist())
 
   config :philomena, PhilomenaWeb.Endpoint,
     http: [ip: ip, port: System.fetch_env!("PORT")],
