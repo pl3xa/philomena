@@ -22,11 +22,11 @@ background() {
   export TASK="bg-jobs"
 
   while :; do
-    step mix run -e 'Philomena.Release.update_channels()' > /dev/null
-    step mix run -e 'Philomena.Release.verify_artist_links()' > /dev/null
-    step mix run -e 'Philomena.Release.update_stats()' > /dev/null
-    step mix run -e 'Philomena.Release.clean_moderation_logs()' > /dev/null
-    step mix run -e 'Philomena.Release.generate_autocomplete()' > /dev/null
+    step START_ENDPOINT=false mix run -e 'Philomena.Release.update_channels()' > /dev/null
+    step START_ENDPOINT=false mix run -e 'Philomena.Release.verify_artist_links()' > /dev/null
+    step START_ENDPOINT=false mix run -e 'Philomena.Release.update_stats()' > /dev/null
+    step START_ENDPOINT=false mix run -e 'Philomena.Release.clean_moderation_logs()' > /dev/null
+    step START_ENDPOINT=false mix run -e 'Philomena.Release.generate_autocomplete()' > /dev/null
 
     sleep 300
   done
