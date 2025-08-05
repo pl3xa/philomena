@@ -15,7 +15,11 @@
 		}
 	}
 }
-
+log {
+  output stderr
+  level debug
+  format console
+}
 :80 {
 	# Handle images
 	@allimages path /img/* /avatars/* /spns/* /badge-img/* /tag-img/*
