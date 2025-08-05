@@ -23,10 +23,10 @@ background() {
 
   while :; do
     step mix run -e 'Philomena.Release.update_channels()' > /dev/null
-#    step mix run -e 'Philomena.Release.verify_artist_links()' > /dev/null
-#    step mix run -e 'Philomena.Release.update_stats()' > /dev/null
-#    step mix run -e 'Philomena.Release.clean_moderation_logs()' > /dev/null
-#    step mix run -e 'Philomena.Release.generate_autocomplete()' > /dev/null
+    step mix run -e 'Philomena.Release.verify_artist_links()' > /dev/null
+    step mix run -e 'Philomena.Release.update_stats()' > /dev/null
+    step mix run -e 'Philomena.Release.clean_moderation_logs()' > /dev/null
+    step mix run -e 'Philomena.Release.generate_autocomplete()' > /dev/null
 
     sleep 300
   done
@@ -70,4 +70,4 @@ background &
 info "Starting the server"
 
 # Run the application
-START_WORKER=true exec mix phx.server
+START_WORKER=true START_ENDPOINT=true exec mix phx.server
