@@ -16,8 +16,10 @@ config :philomena, PhilomenaWeb.Endpoint, cache_static_manifest: "priv/static/ca
                                           server: not is_nil(System.get_env("START_ENDPOINT"))
 
 
+config :phoenix, :stacktrace_depth, 20
+
 # Do not print debug messages in production
-config :logger, level: :warning
+config :logger, level: :debug
 
 #config :philomena, PhilomenaWeb.Endpoint,
        #    http: [ip: ip, port: System.fetch_env!("PORT")],
