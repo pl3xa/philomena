@@ -123,7 +123,7 @@ if config_env() == :prod || System.get_env("FAKE_ENV", "dev") == "prod" do
 
   config :philomena, PhilomenaWeb.Endpoint,
 #    http: [ip: ip, port: System.fetch_env!("PORT")],
-    http: [port: 4000],
+#    http: [port: 4000],
     url: [host: System.fetch_env!("APP_HOSTNAME"), scheme: "https", port: 443],
     secret_key_base: System.fetch_env!("SECRET_KEY_BASE"),
     server: not is_nil(System.get_env("START_ENDPOINT"))

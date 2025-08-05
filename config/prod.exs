@@ -14,6 +14,13 @@ config :philomena, PhilomenaWeb.Endpoint, cache_static_manifest: "priv/static/ca
 # Do not print debug messages in production
 config :logger, level: :warning
 
+config :philomena, PhilomenaWeb.Endpoint,
+       #    http: [ip: ip, port: System.fetch_env!("PORT")],
+       http: [port: 4000],
+       url: [host: System.fetch_env!("APP_HOSTNAME"), scheme: "https", port: 443],
+       secret_key_base: System.fetch_env!("SECRET_KEY_BASE"),
+       server: not is_nil(System.get_env("START_ENDPOINT"))
+
 # ## SSL Support
 #
 # To get SSL working, you will need to add the `https` key
