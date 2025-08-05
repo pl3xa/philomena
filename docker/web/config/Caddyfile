@@ -16,13 +16,10 @@
 	}
 }
 
+{
+  debug
+}
 :80 {
-
-  log {
-    output stderr
-    level debug
-    format console
-  }
 
 	# Handle images
 	@allimages path /img/* /avatars/* /spns/* /badge-img/* /tag-img/*
