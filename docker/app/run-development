@@ -20,13 +20,14 @@ export CARGO_HOME=/srv/philomena/.cargo
 background() {
   # Log the execution with (bg-jobs) prefix to differentiate it from the main process
   export TASK="bg-jobs"
+  export START_ENDPOINT=
 
   while :; do
-    step START_ENDPOINT=false mix run -e 'Philomena.Release.update_channels()' > /dev/null
-    step START_ENDPOINT=false mix run -e 'Philomena.Release.verify_artist_links()' > /dev/null
-    step START_ENDPOINT=false mix run -e 'Philomena.Release.update_stats()' > /dev/null
-    step START_ENDPOINT=false mix run -e 'Philomena.Release.clean_moderation_logs()' > /dev/null
-    step START_ENDPOINT=false mix run -e 'Philomena.Release.generate_autocomplete()' > /dev/null
+    step mix run -e 'Philomena.Release.update_channels()' > /dev/null
+    step mix run -e 'Philomena.Release.verify_artist_links()' > /dev/null
+    step mix run -e 'Philomena.Release.update_stats()' > /dev/null
+    step mix run -e 'Philomena.Release.clean_moderation_logs()' > /dev/null
+    step mix run -e 'Philomena.Release.generate_autocomplete()' > /dev/null
 
     sleep 300
   done
