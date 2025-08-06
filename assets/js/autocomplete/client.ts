@@ -64,7 +64,7 @@ export class AutocompleteClient {
 
     const response = await this.http.fetch(`/autocomplete/compiled`, {
       query: { vsn: '2', key },
-      credentials: 'omit',
+      //credentials: 'omit',
       cache: 'force-cache',
     });
 
