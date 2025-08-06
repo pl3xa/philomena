@@ -22,7 +22,8 @@
 	# Handle images
 	@allimages path /img/* /avatars/* /spns/* /badge-img/* /tag-img/*
 	@imgdownload path_regexp ^/img/download/(.+)/([0-9]+).*\.([A-Za-z0-9]+)$
-	@imgview path_regexp ^/img/view/(.+)/([0-9]+).*\.([A-Za-z0-9]+)$
+	# @imgview path_regexp ^/img/view/(.+)/([0-9]+).*\.([A-Za-z0-9]+)$
+	@imgview path_regexp ^/img/view/(.+)/([0-9]+)(?:/[^/]+)?\.([A-Za-z0-9]+)$
 	@img path_regexp ^/img/(.+)$
 	@spns path_regexp ^/spns/(.+)$
 	@avatars path_regexp ^/avatars/(.+)$
