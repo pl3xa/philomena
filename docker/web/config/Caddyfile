@@ -22,8 +22,9 @@
 	# Handle images
 	@allimages path /img/* /avatars/* /spns/* /badge-img/* /tag-img/*
 	@imgdownload path_regexp ^/img/download/(.+)/([0-9]+).*\.([A-Za-z0-9]+)$
-	# @imgview path_regexp ^/img/view/(.+)/([0-9]+).*\.([A-Za-z0-9]+)$
-	@imgview path_regexp ^/img/view/(.+)/([0-9]+)(?:/[^/]+)?\.([A-Za-z0-9]+)$
+	# # @imgview path_regexp ^/img/view/(.+)/([0-9]+).*\.([A-Za-z0-9]+)$
+	# @imgview path_regexp ^/img/view/(.+)/([0-9]+)(?:/[^/]+)?\.([A-Za-z0-9]+)$
+	@imgview path_regexp ^/img/view/(.+)/([0-9]+)(/[^/]+)?\.([A-Za-z0-9]+)$
 	@img path_regexp ^/img/(.+)$
 	@spns path_regexp ^/spns/(.+)$
 	@avatars path_regexp ^/avatars/(.+)$
@@ -31,7 +32,8 @@
 	@tags path_regexp ^/tag-img/(.+)$
 
 	import s3path @imgdownload /images/{re.imgdownload.1}/{re.imgdownload.2}/full.{re.imgdownload.3}
-	import s3path @imgview /images/{re.imgview.1}/{re.imgview.2}/full.{re.imgview.3}
+	# import s3path @imgview /images/{re.imgview.1}/{re.imgview.2}/full.{re.imgview.3}
+	import s3path @imgview /images/{re.imgview.1}/{re.imgview.2}/full.{re.imgview.4}
 	import s3path @img /images/{re.img.1}
 	import s3path @avatars /avatars/{re.avatars.1}
 	import s3path @spns /adverts/{re.spns.1}
