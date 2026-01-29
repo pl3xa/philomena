@@ -109,15 +109,14 @@ end
 if config_env() == :prod || System.get_env("FAKE_ENV", "dev") == "prod" do
   # Production mailer config
   config :philomena, Philomena.Mailer,
-    adapter: Bamboo.SMTPAdapter,
-    server: System.fetch_env!("SMTP_RELAY"),
-    hostname: System.fetch_env!("SMTP_DOMAIN"),
-    port: System.get_env("SMTP_PORT") || 587,
-    username: System.fetch_env!("SMTP_USERNAME"),
-    password: System.fetch_env!("SMTP_PASSWORD"),
-    tls: :always,
-    tls_verify: :verify_none,
-    auth: :always
+    adapter: Swoosh.Adapters.Mua,
+    relay: System.fetch_env!("SMTP_RELAY"),
+    port: String.to_integer(System.get_env("SMTP_PORT", "587")),
+    auth: [
+      username: System.fetch_env!("SMTP_USERNAME"),
+      password: System.fetch_env!("SMTP_PASSWORD")
+    ],
+    ssl: [middlebox_comp_mode: false]
 
   # Production endpoint config
  {:ok, ip} = :inet.parse_address(System.get_env("APP_IP", "127.0.0.1") |> String.to_charlist())
