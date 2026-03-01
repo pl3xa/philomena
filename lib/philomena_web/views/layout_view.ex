@@ -92,13 +92,13 @@ defmodule PhilomenaWeb.LayoutView do
       do: static_path(conn, "/css/#{theme}.css")
 
   def stylesheet_path(_conn, _user),
-    do: ~p"/css/dark-blue.css"
+    do: ~p"/css/plexa-purple.css"
 
   def light_stylesheet_path(_conn),
     do: ~p"/css/light-blue.css"
 
   def theme_name(%{theme: theme}), do: theme
-  def theme_name(_user), do: "dark-blue"
+  def theme_name(_user), do: "plexa-purple"
 
   def artist_tags(tags),
     do: Enum.filter(tags, &(&1.namespace == "artist"))

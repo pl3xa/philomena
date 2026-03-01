@@ -5,7 +5,8 @@ defmodule PhilomenaWeb.SettingView do
   def themes do
     [
       Dark: "dark",
-      Light: "light"
+      Light: "light",
+      Plexa: "plexa"
     ]
   end
 
