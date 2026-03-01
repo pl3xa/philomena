@@ -45,6 +45,7 @@
 @import "views/commissions";
 @import "views/communications";
 @import "views/derpibooru";
+@import "views/plexabooru";
 @import "views/duplicates";
 @import "views/filters";
 @import "views/galleries";

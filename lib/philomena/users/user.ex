@@ -69,7 +69,7 @@ defmodule Philomena.Users.User do
 
     # Settings
     field :spoiler_type, :string, default: "static"
-    field :theme, :string, default: "dark-blue"
+    field :theme, :string, default: "plexa-purple"
     field :images_per_page, :integer, default: 15
     field :show_large_thumbnails, :boolean, default: true
     field :show_sidebar_and_watched_images, :boolean, default: true
@@ -625,7 +625,7 @@ defmodule Philomena.Users.User do
   end
 
   def theme_names do
-    ~W(dark light)
+    ~W(dark light plexa)
   end
 
   def themes do

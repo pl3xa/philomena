@@ -1,0 +1,19 @@
+/*
+ * Plexabooru-specific branding changes
+ */
+
+:root {
+  --logo-color: #82287E;
+}
+
+i.favicon-home {
+  position: relative;
+  top: 2px;
+  background-image: unset !important;
+  background-color: var(--logo-color);
+  -webkit-mask-image: url("/favicon.svg");
+  mask-image: url("/favicon.svg");
+  mask-size: contain;
+  mask-repeat: no-repeat;
+  mask-position: center;
+}

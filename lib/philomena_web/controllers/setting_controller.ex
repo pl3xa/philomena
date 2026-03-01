@@ -81,13 +81,13 @@ defmodule PhilomenaWeb.SettingController do
     |> Map.put(:theme_color, theme_color)
   end
 
-  defp assign_theme(_), do: assign_theme(%{theme: "dark-blue"})
+  defp assign_theme(_), do: assign_theme(%{theme: "plexa-purple"})
 
   defp determine_theme(%{"theme_name" => name, "theme_color" => color} = attrs)
        when name != nil and color != nil,
        do: Map.put(attrs, "theme", "#{name}-#{color}")
 
-  defp determine_theme(attrs), do: Map.put(attrs, "theme", "dark-blue")
+  defp determine_theme(attrs), do: Map.put(attrs, "theme", "plexa-purple")
 
   defp maybe_update_user(conn, nil, _user_params), do: {:ok, conn}
 
