@@ -80,3 +80,5 @@
         - else
           => size_mib
           | MiB
+    = if @image.image_name do
+      span style="padding-left:12px" = @image.image_name
