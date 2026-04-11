@@ -10,13 +10,13 @@ defmodule PhilomenaWeb.Autocomplete.CompiledController do
       nil ->
         conn
         |> put_status(:not_found)
-        |> configure_session(drop: true)
+        |> configure_session(ignore: true)
         |> text("")
 
       %{content: content} ->
         conn
         |> put_resp_header("cache-control", "public, max-age=86400")
-        |> configure_session(drop: true)
+        |> configure_session(ignore: true)
         |> resp(200, content)
     end
   end
