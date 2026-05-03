@@ -11,3 +11,6 @@ extend-ignore-re = [
   "fo",
   "FO",
 ]
+
+[default.extend-words]
+togglable = "togglable"
