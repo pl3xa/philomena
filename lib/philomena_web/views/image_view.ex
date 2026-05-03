@@ -134,6 +134,19 @@ defmodule PhilomenaWeb.ImageView do
     "#{root}/#{year}/#{month}/#{day}/#{id_fragment}/#{name}.#{format}"
   end
 
+  def s3_filename_url(image) do
+    hash_prefix = String.slice(to_string(image.image_sha512_hash), 0, 8)
+
+    filename =
+      image.image_name
+      |> to_string()
+      |> String.split("?", parts: 2)
+      |> hd()
+      |> URI.encode()
+
+    "https://s.plexa.dev/#{image.id}/#{hash_prefix}/#{filename}"
+  end
+
   def pretty_url(image, short, download) do
     %{year: year, month: month, day: day} = image.created_at
     root = image_url_root()
