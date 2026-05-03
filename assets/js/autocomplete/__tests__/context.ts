@@ -256,7 +256,6 @@ export const autocompleteTest = test.extend<{ ctx: TestContext }>({
           "dest": "GET http://localhost:3000/autocomplete/compiled?vsn=2&key=1970-0-1",
           "meta": {
             "cache": "force-cache",
-            "credentials": "omit",
           },
         },
       ]
