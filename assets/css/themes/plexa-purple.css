@@ -65,5 +65,5 @@ $autocomplete-history-color: #c570c0;
 @mixin dark-theme-mutations;
 
 :root {
-  --logo-color: #82287E;
+  --logo-color: #82287e;
 }
