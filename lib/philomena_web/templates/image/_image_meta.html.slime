@@ -81,4 +81,5 @@
           => size_mib
           | MiB
     = if @image.image_name do
-      span style="margin-left:12px" = @image.image_name
+      span style="margin-left:12px"
+        a href=s3_filename_url(@image) = @image.image_name
