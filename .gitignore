@@ -1,7 +1,10 @@
 rclone.conf
 *.age
-# to kill git seeing docker compose changes:
-# git update-index --assume-unchanged docker-compose.yml
+
+# Plaintext secrets pulled from 1Password Environment by bin/sync-env.
+# docker-compose.yml interpolates ${VAR} from this file at `docker compose up`.
+.env
+.env.local
 
 
 # The directory Mix will write compiled artifacts to.

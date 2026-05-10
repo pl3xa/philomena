@@ -1,0 +1,40 @@
+#!/usr/bin/env bash
+# Pull every variable from the 1Password Environment into ./.env so that
+# `docker compose` can read it natively. Run this whenever a secret rotates,
+# a variable is added/removed in the Environment, or after a fresh clone.
+#
+# .env is mode 0600 and gitignored; it must never be committed.
+
+set -euo pipefail
+
+OP_ENV_ID="ybro633rooejcx33nnfex64zs4"
+OP_BIN="${OP_BIN:-$HOME/.local/bin/op}"
+
+if [[ -z "${OP_SERVICE_ACCOUNT_TOKEN:-}" ]]; then
+  TOKEN_FILE="${OP_TOKEN_FILE:-$HOME/.config/op/service-account-token}"
+  if [[ -r "$TOKEN_FILE" ]]; then
+    OP_SERVICE_ACCOUNT_TOKEN="$(< "$TOKEN_FILE")"
+    export OP_SERVICE_ACCOUNT_TOKEN
+  else
+    echo "error: OP_SERVICE_ACCOUNT_TOKEN unset and $TOKEN_FILE not readable" >&2
+    exit 1
+  fi
+fi
+
+cd "$(dirname "$0")/.."
+
+umask 077
+tmp="$(mktemp .env.tmp.XXXXXX)"
+trap 'rm -f "$tmp"' EXIT
+
+"$OP_BIN" environment read "$OP_ENV_ID" > "$tmp"
+
+if ! [[ -s "$tmp" ]]; then
+  echo "error: empty output from op environment read $OP_ENV_ID" >&2
+  exit 1
+fi
+
+mv "$tmp" .env
+chmod 600 .env
+
+echo "✅ .env synced ($(wc -l < .env) variables) from environment $OP_ENV_ID"
