@@ -21,14 +21,18 @@ services:
       # be a bare `level` which will be used as a catch-all for all other log
       # events that do not match any of the previous filters.
       - PHILOMENA_LOG=${PHILOMENA_LOG-Ecto=debug,Exq=none,PhilomenaMedia.Objects=info,debug}
-      - MIX_ENV=dev
-      - PGPASSWORD=postgres
-      - ANONYMOUS_NAME_SALT=2fmJRo0OgMFe65kyAJBxPT0QtkVes/jnKDdtP21fexsRqiw8TlSY7yO+uFyMZycp
-      - HCAPTCHA_SECRET_KEY=0x0000000000000000000000000000000000000000
-      - HCAPTCHA_SITE_KEY=10000000-ffff-ffff-ffff-000000000001
-      - PASSWORD_PEPPER=dn2e0EpZrvBLoxUM3gfQveBhjf0bG/6/bYhrOyq3L3hV9hdo/bimJ+irbDWsuXLP
-      - TUMBLR_API_KEY=fuiKNFp9vQFvjLNvx4sUwti4Yb5yGutBN4Xh10LXZhhRKjWlV4
-      - OTP_SECRET_KEY=Wn7O/8DD+qxL0X4X7bvT90wOkVGcA90bIHww4twR03Ci//zq7PnMw8ypqyyT/b/C
+#      - MIX_ENV=dev
+      - MIX_ENV=prod
+      - FAKE_ENV=prod
+      - APP_HOSTNAME=booru.plexa.dev
+      - APP_IP=0.0.0.0
+      - PGPASSWORD=${PGPASSWORD}
+      - ANONYMOUS_NAME_SALT=${ANONYMOUS_NAME_SALT}
+      - HCAPTCHA_SECRET_KEY=${HCAPTCHA_SECRET_KEY}
+      - HCAPTCHA_SITE_KEY=${HCAPTCHA_SITE_KEY}
+      - PASSWORD_PEPPER=${PASSWORD_PEPPER}
+      - TUMBLR_API_KEY=${TUMBLR_API_KEY}
+      - OTP_SECRET_KEY=${OTP_SECRET_KEY}
       - ADVERT_FILE_ROOT=adverts
       - AVATAR_FILE_ROOT=avatars
       - BADGE_FILE_ROOT=badges
@@ -37,21 +41,28 @@ services:
       - AVATAR_URL_ROOT=/avatars
       - ADVERT_URL_ROOT=/spns
       - IMAGE_URL_ROOT=/img
+#      - IMAGE_URL_ROOT=https://boorucdn.judge.sh/images
       - BADGE_URL_ROOT=/badge-img
       - TAG_URL_ROOT=/tag-img
       - OPENSEARCH_URL=http://opensearch:9200
       - REDIS_HOST=valkey
-      - DATABASE_URL=ecto://postgres:postgres@postgres/philomena_dev
-      - CDN_HOST=localhost
-      - MAILER_ADDRESS=noreply@philomena.local
-      - START_ENDPOINT=true
-      - SITE_DOMAINS=localhost
-      - S3_SCHEME=http
-      - S3_HOST=files
-      - S3_PORT=80
-      - S3_BUCKET=philomena
-      - AWS_ACCESS_KEY_ID=local-identity
-      - AWS_SECRET_ACCESS_KEY=local-credential
+      - DATABASE_URL=${DATABASE_URL}
+      - CDN_HOST=boorucdn.plexa.dev
+      - MAILER_ADDRESS=booru@plexa.dev
+#      - START_ENDPOINT=true
+      - SECRET_KEY_BASE=${SECRET_KEY_BASE}
+      - SITE_DOMAINS=booru.plexa.dev
+      - S3_SCHEME=https
+      - S3_HOST=588bf4099b3f4afed2ac29958b07b7d3.r2.cloudflarestorage.com
+      - S3_PORT=443
+      - PORT=4000
+      - S3_BUCKET=booru-judge-sh
+      - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
+      - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
+      - SMTP_RELAY=email-smtp.us-east-1.amazonaws.com
+      - SMTP_PORT=587
+      - SMTP_USERNAME=${SMTP_USERNAME}
+      - SMTP_PASSWORD=${SMTP_PASSWORD}
     working_dir: /srv/philomena
     tty: true
     volumes:
@@ -64,13 +75,13 @@ services:
       - postgres
       - opensearch
       - valkey
-    ports:
-      - '5173:5173'
+#    ports:
+#      - '5173:5173'
 
   postgres:
     image: postgres:17.6-alpine
     environment:
-      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
     volumes:
       - postgres_data:/var/lib/postgresql/data
     attach: false
@@ -93,10 +104,10 @@ services:
   files:
     image: andrewgaul/s3proxy:sha-9f66ef5
     environment:
-      - JCLOUDS_FILESYSTEM_BASEDIR=/data
+      - JCLOUDS_FILESYSTEM_BASEDIR=/srv/philomena/priv/s3
       - S3PROXY_IGNORE_UNKNOWN_HEADERS=true
     volumes:
-      - s3_data:/data
+      - .:/srv/philomena
     attach: false
 
   web:
@@ -109,12 +120,17 @@ services:
       - caddy_data:/data
     environment:
       - APP_DIR=/srv/philomena
-      - S3_ENDPOINT=http://files:80
-      - S3_BUCKET=philomena
-      - AWS_ACCESS_KEY_ID=local-identity
-      - AWS_SECRET_ACCESS_KEY=local-credential
+      - S3_ENDPOINT=https://588bf4099b3f4afed2ac29958b07b7d3.r2.cloudflarestorage.com:443
+      - S3_BUCKET=booru-judge-sh
+      - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
+      - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
     attach: false
     depends_on:
       - app
-    ports:
-      - '8080:80'
+#    ports:
+#      - '8080:80'
+  cloudflared:
+    image: cloudflare/cloudflared:latest
+    command: "tunnel --no-autoupdate run"
+    environment:
+      - TUNNEL_TOKEN=${TUNNEL_TOKEN}
