@@ -10,6 +10,7 @@ volumes:
 
 services:
   app:
+    restart: unless-stopped
     build:
       context: .
       dockerfile: ./docker/app/Dockerfile
@@ -80,6 +81,7 @@ services:
 
   postgres:
     image: postgres:17.9-alpine
+    restart: unless-stopped
     environment:
       - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
     volumes:
@@ -88,6 +90,7 @@ services:
 
   opensearch:
     image: opensearchproject/opensearch:3.6.0
+    restart: unless-stopped
     volumes:
       - opensearch_data:/usr/share/opensearch/data
       - ./docker/opensearch/opensearch.yml:/usr/share/opensearch/config/opensearch.yml
@@ -99,10 +102,12 @@ services:
 
   valkey:
     image: valkey/valkey:8.1.6-alpine
+    restart: unless-stopped
     attach: false
 
   files:
     image: andrewgaul/s3proxy:sha-6597ca5
+    restart: unless-stopped
     environment:
       - JCLOUDS_FILESYSTEM_BASEDIR=/srv/philomena/priv/s3
       - S3PROXY_IGNORE_UNKNOWN_HEADERS=true
@@ -111,6 +116,7 @@ services:
     attach: false
 
   web:
+    restart: unless-stopped
     build:
       context: .
       dockerfile: ./docker/web/Dockerfile
@@ -131,6 +137,7 @@ services:
 #      - '8080:80'
   cloudflared:
     image: cloudflare/cloudflared:latest
+    restart: unless-stopped
     command: "tunnel --no-autoupdate run"
     environment:
       - TUNNEL_TOKEN=${TUNNEL_TOKEN}
