@@ -88,10 +88,18 @@ defmodule PhilomenaWeb.Api.Json.ImageController do
               UserStatistics.inc_stat(user, :metadata_updates)
             end
 
-            image = Repo.preload(image, [:sources, tags: :aliases], force: true)
-            interactions = Interactions.user_interactions([image], user)
+            case maybe_update_sources(image, attributes, image_params) do
+              {:ok, image} ->
+                image = Repo.preload(image, [:sources, tags: :aliases], force: true)
+                interactions = Interactions.user_interactions([image], user)
 
-            render(conn, "show.json", image: image, interactions: interactions)
+                render(conn, "show.json", image: image, interactions: interactions)
+
+              {:error, changeset} ->
+                conn
+                |> put_status(:bad_request)
+                |> render("error.json", changeset: changeset)
+            end
 
           {:error, :image, changeset, _} ->
             conn
@@ -105,6 +113,33 @@ defmodule PhilomenaWeb.Api.Json.ImageController do
         end
     end
   end
+
+  # Additively updates an image's sources when `sources` params are present.
+  # Sending `old_sources: {}` means existing sources are unioned with the new
+  # ones (never removed), so API clients can backfill missing sources safely.
+  defp maybe_update_sources(image, attributes, %{"sources" => _} = image_params) do
+    image_params = Map.put_new(image_params, "old_sources", %{})
+
+    case Images.update_sources(image, attributes, image_params) do
+      {:ok, %{image: {image, added_sources, removed_sources}}} ->
+        if Enum.any?(added_sources) or Enum.any?(removed_sources) do
+          PhilomenaWeb.Endpoint.broadcast!(
+            "firehose",
+            "image:source_update",
+            %{image_id: image.id, added: [added_sources], removed: [removed_sources]}
+          )
+
+          Images.reindex_image(image)
+        end
+
+        {:ok, image}
+
+      {:error, :image, changeset, _} ->
+        {:error, changeset}
+    end
+  end
+
+  defp maybe_update_sources(image, _attributes, _image_params), do: {:ok, image}
 
   def create(conn, %{"image" => image_params}) do
     attributes = conn.assigns.attributes
