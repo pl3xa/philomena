@@ -271,3 +271,35 @@ fn auto_relative_links() {
         },
     );
 }
+
+#[test]
+fn details_summary_escaped_shape() {
+    // Philomena.Markdown.to_html/2 (Elixir) re-enables plain, attribute-free
+    // <details>/<summary> by replacing these exact escaped forms outside
+    // <pre>/<code> segments. This pins the escaped output shape it relies on.
+    html(
+        concat!(
+            "<details>\n",
+            "<summary>Raw interaction</summary>\n",
+            "\n",
+            "```json\n",
+            "has <details> inside code\n",
+            "```\n",
+            "\n",
+            "</details>\n",
+            "\n",
+            "prose <details> inline\n",
+            "\n",
+            "`inline <details> code`\n",
+        ),
+        concat!(
+            "&lt;details&gt;\n",
+            "&lt;summary&gt;Raw interaction&lt;/summary&gt;\n",
+            "<pre lang=\"json\"><code>has &lt;details&gt; inside code\n",
+            "</code></pre>\n",
+            "&lt;/details&gt;\n",
+            "<div class=\"paragraph\">prose &lt;details&gt; inline</div>\n",
+            "<div class=\"paragraph\"><code>inline &lt;details&gt; code</code></div>\n",
+        ),
+    );
+}
