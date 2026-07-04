@@ -1,0 +1,9 @@
+# Fork-specific files not present upstream (derpibooru). Keeping them out of
+# prettier means local docs/config don't break the CI formatting check.
+CLAUDE.md
+RESTORE.md
+.claude/
+
+# Heavily customized from upstream and hand-maintained with ${VAR}
+# interpolation; don't let prettier reflow it.
+docker-compose.yml
