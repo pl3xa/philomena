@@ -313,3 +313,8 @@ div.image-container video {
 .image_source__icon {
   justify-self: center;
 }
+
+.image_source__icon-link {
+  color: inherit;
+  cursor: pointer;
+}
