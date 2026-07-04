@@ -526,4 +526,52 @@ defmodule PhilomenaWeb.ImageView do
         end
     end
   end
+
+  @doc """
+  Returns a `discord://` deep link that opens the given source in the Discord
+  desktop client, or `nil` if the source is not a linkable Discord location.
+
+  Message/channel jump links keep their path and swap the origin for the
+  client's protocol handler:
+
+      https://discord.com/channels/<guild>/<channel>/<message>
+        -> discord://-/channels/<guild>/<channel>/<message>
+
+  Invites are rewritten to the invite route:
+
+      https://discord.gg/<code> -> discord://-/invite/<code>
+
+  CDN/media hosts (cdn.discordapp.com, *.discordapp.net) have no app route and
+  return `nil`.
+  """
+  def discord_app_link(nil), do: nil
+  def discord_app_link(""), do: nil
+
+  def discord_app_link(source) do
+    uri = URI.parse(source)
+
+    case uri.host do
+      h
+      when h in [
+             "discord.com",
+             "www.discord.com",
+             "ptb.discord.com",
+             "canary.discord.com",
+             "discordapp.com",
+             "www.discordapp.com"
+           ] ->
+        if is_binary(uri.path) and String.starts_with?(uri.path, "/channels/") do
+          "discord://-" <> uri.path
+        end
+
+      "discord.gg" ->
+        case uri.path do
+          "/" <> code when code != "" -> "discord://-/invite/" <> code
+          _ -> nil
+        end
+
+      _ ->
+        nil
+    end
+  end
 end

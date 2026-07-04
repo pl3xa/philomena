@@ -69,13 +69,23 @@
         = if has_sources do
           - [first_source | sources] = @image.sources
           .image_source__icon
-            i class=image_source_icon(first_source.source)
+            - discord_link = discord_app_link(first_source.source)
+            = if discord_link do
+              a.image_source__icon-link href=discord_link title="Open in the Discord app"
+                i class=image_source_icon(first_source.source)
+            - else
+              i class=image_source_icon(first_source.source)
           .image_source__link
             a.js-source-link href=first_source.source
               strong = first_source.source
           = for source <- sources do
             .image_source__icon
-              i class=image_source_icon(source.source)
+              - discord_link = discord_app_link(source.source)
+              = if discord_link do
+                a.image_source__icon-link href=discord_link title="Open in the Discord app"
+                  i class=image_source_icon(source.source)
+              - else
+                i class=image_source_icon(source.source)
             .image_source__link
               a href=source.source
                 strong = source.source
