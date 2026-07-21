@@ -57,6 +57,42 @@ defmodule Philomena.Users do
   end
 
   @doc """
+  Lists users eligible for Cloudflare Access one-click login: accounts whose
+  email matches one of the given patterns, excluding unconfirmed, deactivated
+  and locked accounts.
+
+  ## Examples
+
+      iex> list_users_for_email_patterns([{:email, "a@b.com"}, {:domain, "plexa.dev"}])
+      [%User{}]
+
+  """
+  def list_users_for_email_patterns([]), do: []
+
+  def list_users_for_email_patterns(patterns) when is_list(patterns) do
+    conditions =
+      Enum.reduce(patterns, dynamic(false), fn
+        {:email, email}, dyn ->
+          dynamic([u], ^dyn or u.email == ^email)
+
+        {:domain, domain}, dyn ->
+          pattern = "%@" <> escape_like(domain)
+          dynamic([u], ^dyn or ilike(u.email, ^pattern))
+      end)
+
+    Repo.all(
+      from u in User,
+        where: ^conditions,
+        where: not is_nil(u.confirmed_at),
+        where: is_nil(u.deleted_at),
+        where: is_nil(u.locked_at),
+        order_by: [asc: u.name]
+    )
+  end
+
+  defp escape_like(string), do: String.replace(string, ~r/([\\%_])/, ~S"\\\1")
+
+  @doc """
   Gets a user by name.
 
   ## Examples

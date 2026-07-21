@@ -16,6 +16,54 @@ defmodule Philomena.UsersTest do
     end
   end
 
+  describe "list_users_for_email_patterns/1" do
+    test "returns an empty list for no patterns" do
+      assert Users.list_users_for_email_patterns([]) == []
+    end
+
+    test "matches exact emails case-insensitively" do
+      %{id: id} = confirmed_user_fixture(%{email: "exact@example.com", name: "exactuser"})
+
+      assert [%User{id: ^id}] =
+               Users.list_users_for_email_patterns([{:email, "EXACT@EXAMPLE.COM"}])
+    end
+
+    test "matches domain patterns without matching other or sub domains" do
+      %{id: id} = confirmed_user_fixture(%{email: "horse@plexa.dev", name: "horse"})
+      confirmed_user_fixture(%{email: "x@notplexa.dev", name: "notplexa"})
+      confirmed_user_fixture(%{email: "x@sub.plexa.dev", name: "subplexa"})
+
+      assert [%User{id: ^id}] = Users.list_users_for_email_patterns([{:domain, "plexa.dev"}])
+    end
+
+    test "excludes unconfirmed, locked and deleted users" do
+      user_fixture(%{email: "unconfirmed@plexa.dev", name: "unconfirmeduser"})
+
+      locked_user_fixture(%{email: "locked@plexa.dev", name: "lockeduser"})
+      |> Users.User.confirm_changeset()
+      |> Repo.update!()
+
+      confirmed_user_fixture(%{email: "deleted@plexa.dev", name: "deleteduser"})
+      |> Ecto.Changeset.change(deleted_at: DateTime.utc_now(:second))
+      |> Repo.update!()
+
+      %{id: id} = confirmed_user_fixture(%{email: "ok@plexa.dev", name: "okuser"})
+
+      assert [%User{id: ^id}] = Users.list_users_for_email_patterns([{:domain, "plexa.dev"}])
+    end
+
+    test "combines email and domain patterns, ordered by name" do
+      %{id: a} = confirmed_user_fixture(%{email: "hunterray555@gmail.com", name: "ahunter"})
+      %{id: b} = confirmed_user_fixture(%{email: "horse@plexa.dev", name: "bhorse"})
+
+      assert [%User{id: ^a}, %User{id: ^b}] =
+               Users.list_users_for_email_patterns([
+                 {:email, "hunterray555@gmail.com"},
+                 {:domain, "plexa.dev"}
+               ])
+    end
+  end
+
   describe "get_user_by_email_and_password/3" do
     test "does not return the user if the email does not exist" do
       refute Users.get_user_by_email_and_password("unknown@example.com", "hello world!", & &1)
