@@ -37,6 +37,13 @@ config :philomena,
   camo_key: System.get_env("CAMO_KEY"),
   cdn_host: System.fetch_env!("CDN_HOST")
 
+# Cloudflare Access one-click login. Disabled unless both the team domain
+# and the Access application AUD tag are set.
+config :philomena,
+  cf_access_team_domain: System.get_env("CF_ACCESS_TEAM_DOMAIN"),
+  cf_access_aud: System.get_env("CF_ACCESS_AUD"),
+  cf_access_email_map: System.get_env("CF_ACCESS_EMAIL_MAP", "")
+
 app_dir = System.get_env("APP_DIR", File.cwd!())
 
 json_config =
