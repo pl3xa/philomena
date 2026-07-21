@@ -50,6 +50,36 @@ defmodule PhilomenaWeb.UserAuth do
   end
 
   @doc """
+  Logs the user in for Cloudflare Access one-click login.
+
+  Behaves like `log_in_user/3`, but if the account has TOTP enabled, the
+  session is also marked TOTP-valid without a challenge — authentication
+  at the Cloudflare edge stands in for the second factor.
+  """
+  def log_in_user_totp_verified(conn, user, params \\ %{}) do
+    token = Users.generate_user_session_token(user)
+    user_return_to = get_session(conn, :user_return_to)
+
+    conn
+    |> renew_session()
+    |> put_session(:user_token, token)
+    |> put_session(:live_socket_id, "users_sessions:#{Base.url_encode64(token)}")
+    |> maybe_write_remember_me_cookie(token, params)
+    |> maybe_put_totp_session(user, params)
+    |> redirect(to: user_return_to || signed_in_path(conn))
+  end
+
+  defp maybe_put_totp_session(conn, %{otp_required_for_login: true} = user, params) do
+    totp_token = Users.generate_user_totp_token(user)
+
+    conn
+    |> put_session(:totp_token, totp_token)
+    |> maybe_write_totp_auth_cookie(totp_token, params)
+  end
+
+  defp maybe_put_totp_session(conn, _user, _params), do: conn
+
+  @doc """
   Writes TOTP session metadata for an authenticated user.
   """
   def totp_auth_user(conn, user, params \\ %{}) do
