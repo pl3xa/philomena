@@ -56,8 +56,8 @@ services:
       # Cloudflare Access one-click login. Team domain and AUD tag come from
       # Zero Trust -> Access -> Applications -> (booru app) -> Overview.
       # The feature is disabled while either of the first two is empty.
-      - CF_ACCESS_TEAM_DOMAIN=
-      - CF_ACCESS_AUD=
+      - CF_ACCESS_TEAM_DOMAIN=pl3xa.cloudflareaccess.com
+      - CF_ACCESS_AUD=753e9e9c5f586b6cd1717ff662c9ab3982c5343782f9de6235b8a42ab891a56b
       - CF_ACCESS_EMAIL_MAP=hunterray555@gmail.com=@plexa.dev
       - S3_SCHEME=https
       - S3_HOST=588bf4099b3f4afed2ac29958b07b7d3.r2.cloudflarestorage.com
