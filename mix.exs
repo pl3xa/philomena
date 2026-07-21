@@ -53,6 +53,7 @@ defmodule Philomena.MixProject do
       {:phoenix_pubsub_redis, "~> 3.0"},
       {:ecto_network, "~> 1.6"},
       {:bcrypt_elixir, "~> 3.3"},
+      {:jose, "~> 1.11"},
       {:pot, "~> 1.0"},
       {:secure_compare, "~> 0.1"},
       {:nimble_parsec, "~> 1.2"},
