@@ -59,6 +59,7 @@ defmodule PhilomenaWeb.Router do
     pipe_through [:browser, :redirect_if_user_is_authenticated]
 
     resources "/sessions", SessionController, only: [:new, :create], singleton: true
+    post "/sessions/cf_access/:user_id", SessionController, :cf_access_create
   end
 
   scope "/", PhilomenaWeb do
