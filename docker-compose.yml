@@ -53,6 +53,12 @@ services:
 #      - START_ENDPOINT=true
       - SECRET_KEY_BASE=${SECRET_KEY_BASE}
       - SITE_DOMAINS=booru.plexa.dev
+      # Cloudflare Access one-click login. Team domain and AUD tag come from
+      # Zero Trust -> Access -> Applications -> (booru app) -> Overview.
+      # The feature is disabled while either of the first two is empty.
+      - CF_ACCESS_TEAM_DOMAIN=
+      - CF_ACCESS_AUD=
+      - CF_ACCESS_EMAIL_MAP=hunterray555@gmail.com=@plexa.dev
       - S3_SCHEME=https
       - S3_HOST=588bf4099b3f4afed2ac29958b07b7d3.r2.cloudflarestorage.com
       - S3_PORT=443
