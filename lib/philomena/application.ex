@@ -33,6 +33,9 @@ defmodule Philomena.Application do
       # Advert update batching
       Philomena.Adverts.Server,
 
+      # Cloudflare Access signing key cache
+      Philomena.CloudflareAccess.JwksCache,
+
       # Start the endpoint when the application starts
       PhilomenaWeb.UserFingerprintUpdater,
       PhilomenaWeb.UserIpUpdater,
