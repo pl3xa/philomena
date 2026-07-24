@@ -23,6 +23,7 @@ import { setupSettings } from './settings';
 import { listenForKeys } from './shortcuts';
 import { initTagDropdown } from './tags';
 import { setupTagListener } from './tagsinput';
+import { setupTempShare } from './temp-share';
 import { setupTagEvents } from './tagsmisc';
 import { setupTimestamps } from './timeago';
 import { setupImageUpload } from './upload';
@@ -53,6 +54,7 @@ const functions = [
   listenForKeys,
   initTagDropdown,
   setupTagListener,
+  setupTempShare,
   setupTagEvents,
   setupTimestamps,
   setupImageUpload,

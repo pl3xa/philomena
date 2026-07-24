@@ -18,6 +18,7 @@ defmodule Philomena.Images do
   alias Philomena.Images.Tagging
   alias Philomena.Images.Thumbnailer
   alias Philomena.Images.Source
+  alias Philomena.Images.TempShare
   alias Philomena.Images.SearchIndex, as: ImageIndex
   alias Philomena.IndexWorker
   alias Philomena.ImageFeatures.ImageFeature
@@ -678,6 +679,43 @@ defmodule Philomena.Images do
 
       err ->
         err
+    end
+  end
+
+  @doc """
+  Adds a `temp-share:x:y` tag to the image and returns the temporary share
+  URL served by the s.plexa.dev worker. Already-expired temp-share tags are
+  pruned in the same update. Requires `:tags` to be preloaded.
+
+  ## Examples
+
+      iex> create_temp_share(image, %{user: user, ip: ip, fingerprint: fp})
+      {:ok, "https://s.plexa.dev/969/0123456789abcdef/example.png"}
+
+  """
+  def create_temp_share(%Image{} = image, attribution) do
+    now = DateTime.to_unix(DateTime.utc_now())
+    old_names = Enum.map(image.tags, & &1.name)
+
+    new_names =
+      old_names
+      |> Enum.reject(&TempShare.expired_tag?(&1, now))
+      |> Kernel.++([TempShare.tag_name(now)])
+
+    attrs = %{
+      "old_tag_input" => Enum.join(old_names, ", "),
+      "tag_input" => Enum.join(new_names, ", ")
+    }
+
+    case update_tags(image, attribution, attrs) do
+      {:ok, %{image: {image, added_tags, removed_tags}}} ->
+        reindex_image(image)
+        Tags.reindex_tags(added_tags ++ removed_tags)
+
+        {:ok, TempShare.url(image, now, TempShare.validity())}
+
+      error ->
+        error
     end
   end
 
