@@ -147,6 +147,35 @@ defmodule PhilomenaWeb.ImageView do
     "https://s.plexa.dev/#{image.id}/#{hash_prefix}/#{filename}"
   end
 
+  # Non-nil only for users who may edit tags; the js-public-share click
+  # override keys off this attribute so everyone else keeps a plain link.
+  def public_share_state(conn, image) do
+    if can?(conn, :edit_metadata, image) do
+      to_string(Enum.any?(image.tags, &(&1.name == "public-share")))
+    end
+  end
+
+  def display_image_name(image) do
+    name = to_string(image.image_name)
+
+    case String.split(name, "?", parts: 2) do
+      [base, query] ->
+        if discord_signed_query?(query), do: base, else: name
+
+      _ ->
+        name
+    end
+  end
+
+  # Discord CDN attachments are signed with ex/is/hm query params
+  defp discord_signed_query?(query) do
+    params = URI.decode_query(query)
+
+    Enum.all?(~w(ex is hm), fn key ->
+      params |> Map.get(key) |> to_string() |> String.match?(~r/\A[0-9a-f]+\z/)
+    end)
+  end
+
   def pretty_url(image, short, download) do
     %{year: year, month: month, day: day} = image.created_at
     root = image_url_root()

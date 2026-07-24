@@ -719,6 +719,41 @@ defmodule Philomena.Images do
     end
   end
 
+  @doc """
+  Adds the `public-share` tag to the image, opting it into permanent public
+  access via its s.plexa.dev hash URL. No-op if the tag is already present.
+  Requires `:tags` to be preloaded.
+
+  ## Examples
+
+      iex> create_public_share(image, %{user: user, ip: ip, fingerprint: fp})
+      {:ok, %Image{}}
+
+  """
+  def create_public_share(%Image{} = image, attribution) do
+    old_names = Enum.map(image.tags, & &1.name)
+
+    if "public-share" in old_names do
+      {:ok, image}
+    else
+      attrs = %{
+        "old_tag_input" => Enum.join(old_names, ", "),
+        "tag_input" => Enum.join(old_names ++ ["public-share"], ", ")
+      }
+
+      case update_tags(image, attribution, attrs) do
+        {:ok, %{image: {image, added_tags, removed_tags}}} ->
+          reindex_image(image)
+          Tags.reindex_tags(added_tags ++ removed_tags)
+
+          {:ok, image}
+
+        error ->
+          error
+      end
+    end
+  end
+
   defp check_tag_change_limits_before_commit(image, attribution) do
     tag_changed_count = length(image.added_tags) + length(image.removed_tags)
     rating_changed = image.ratings_changed

@@ -81,8 +81,11 @@
           => size_mib
           | MiB
     = if @image.image_name do
-      span style="margin-left:12px"
-        a href=s3_filename_url(@image) = @image.image_name
+      span
+        | &nbsp;
+        => display_image_name(@image)
+        a.js-public-share> href=s3_filename_url(@image) target="_blank" title="Share link" data-image-id=@image.id data-has-tag=public_share_state(@conn, @image)
+          i.fa.fa-share-nodes
         = if can?(@conn, :edit_metadata, @image) do
-          a.js-temp-share href="#" data-image-id=@image.id title="Generate temporary share link (1 hour)" style="margin-left:6px"
-            i.fa.fa-share-nodes>
+          a.js-temp-share href="#" data-image-id=@image.id title="Generate temporary share link (1 hour)"
+            i.fa.fa-stopwatch
