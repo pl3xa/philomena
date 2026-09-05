@@ -6,6 +6,10 @@ jobs:
   build:
     name: 'Build Elixir app'
     runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      COMPOSE_FILE: docker-compose.ci.yml
+      COMPOSE_PROJECT_NAME: philomena-ci
     steps:
       - uses: actions/checkout@v4
 
@@ -16,23 +20,28 @@ jobs:
             _build
             .cargo
             deps
-          key: ${{ runner.os }}-deps-3-${{ hashFiles('mix.lock') }}
+          key: ${{ runner.os }}-deps-4-${{ hashFiles('mix.lock', 'native/philomena/Cargo.lock', 'docker/app/Dockerfile') }}
 
       - name: Enable caching
         run: |
-          # Disable volumes so caching can take effect
-          sed -i -Ee 's/- app_[a-z]+_data:.*$//g' docker-compose.yml
-
           # Make ourselves the owner
           echo "RUN addgroup -g $(id -g) -S appgroup && adduser -u $(id -u) -S appuser -G appgroup" >> docker/app/Dockerfile
           echo "USER appuser" >> docker/app/Dockerfile
           echo "RUN mix local.hex --force && mix local.rebar --force" >> docker/app/Dockerfile
 
-      - run: docker compose pull
+      - run: docker compose pull postgres opensearch valkey files
       - run: docker compose build
 
       - name: Build and test
-        run: docker compose run app run-test
+        run: docker compose run --rm app run-test
+
+      - name: Service logs on failure
+        if: failure()
+        run: docker compose logs --no-color --tail 100
+
+      - name: Clean up test services
+        if: always()
+        run: docker compose down --volumes
 
   typos:
     name: 'Check for spelling errors'
@@ -48,7 +57,7 @@ jobs:
       - uses: actions/checkout@v5
 
       - name: Setup Rust
-        uses: dtolnay/rust-toolchain@1.87.0
+        uses: dtolnay/rust-toolchain@1.91.1
         with:
           components: clippy, rustfmt
 
@@ -56,10 +65,10 @@ jobs:
         run: (cd native/philomena && cargo fmt --check)
 
       - name: cargo clippy
-        run: (cd native/philomena && cargo clippy -- -D warnings)
+        run: (cd native/philomena && cargo clippy --locked -- -D warnings)
 
       - name: cargo test
-        run: (cd native/philomena && cargo test)
+        run: (cd native/philomena && cargo test --locked)
 
   prettier:
     name: 'Prettier Formatting Check'

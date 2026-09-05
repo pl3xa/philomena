@@ -1,0 +1,92 @@
+# Standalone test stack: no deployment credentials, external services or host ports.
+# Run with: docker compose -f docker-compose.ci.yml run --build --rm app run-test
+services:
+  app:
+    build:
+      context: .
+      dockerfile: ./docker/app/Dockerfile
+    working_dir: /srv/philomena
+    environment:
+      MIX_ENV: test
+      FAKE_ENV: dev
+      PGPASSWORD: postgres
+      BCRYPT_ROUNDS: '4'
+      ANONYMOUS_NAME_SALT: ci-only-anonymous-salt
+      HCAPTCHA_SECRET_KEY: '0x0000000000000000000000000000000000000000'
+      HCAPTCHA_SITE_KEY: 10000000-ffff-ffff-ffff-000000000001
+      PASSWORD_PEPPER: ci-only-password-pepper
+      TUMBLR_API_KEY: ci-only
+      OTP_SECRET_KEY: eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHg=
+      ADVERT_FILE_ROOT: adverts
+      AVATAR_FILE_ROOT: avatars
+      BADGE_FILE_ROOT: badges
+      IMAGE_FILE_ROOT: images
+      TAG_FILE_ROOT: tags
+      AVATAR_URL_ROOT: /avatars
+      ADVERT_URL_ROOT: /spns
+      IMAGE_URL_ROOT: /img
+      BADGE_URL_ROOT: /badge-img
+      TAG_URL_ROOT: /tag-img
+      OPENSEARCH_URL: http://opensearch:9200
+      REDIS_HOST: valkey
+      DATABASE_URL: ecto://postgres:postgres@postgres/philomena_test
+      CDN_HOST: localhost
+      MAILER_ADDRESS: noreply@philomena.local
+      SITE_DOMAINS: localhost
+      S3_SCHEME: http
+      S3_HOST: files
+      S3_PORT: '80'
+      S3_BUCKET: philomena
+      AWS_ACCESS_KEY_ID: local-identity
+      AWS_SECRET_ACCESS_KEY: local-credential
+    volumes:
+      # Keep build and dependency caches in the checkout for actions/cache.
+      - .:/srv/philomena
+    depends_on:
+      postgres:
+        condition: service_healthy
+      opensearch:
+        condition: service_healthy
+      valkey:
+        condition: service_started
+      files:
+        condition: service_started
+
+  postgres:
+    image: postgres:17.9-alpine
+    environment:
+      POSTGRES_PASSWORD: postgres
+    healthcheck:
+      test: ['CMD', 'pg_isready', '-h', '127.0.0.1', '-U', 'postgres']
+      interval: 2s
+      timeout: 5s
+      retries: 30
+
+  opensearch:
+    image: opensearchproject/opensearch:3.6.0
+    volumes:
+      - ./docker/opensearch/opensearch.yml:/usr/share/opensearch/config/opensearch.yml:ro
+    ulimits:
+      nofile:
+        soft: 65536
+        hard: 65536
+    healthcheck:
+      test: ['CMD', 'curl', '--fail', '--silent', 'http://localhost:9200']
+      interval: 5s
+      timeout: 5s
+      retries: 60
+
+  valkey:
+    image: valkey/valkey:8.1.6-alpine
+
+  files:
+    image: andrewgaul/s3proxy:sha-6597ca5
+    environment:
+      JCLOUDS_FILESYSTEM_BASEDIR: /data
+      S3PROXY_IGNORE_UNKNOWN_HEADERS: 'true'
+
+  # Preserve the web image build check without starting the deployment proxy.
+  web:
+    build:
+      context: .
+      dockerfile: ./docker/web/Dockerfile

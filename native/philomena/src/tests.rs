@@ -4,6 +4,9 @@ use crate::{domains, markdown::*};
 
 fn test_options() -> comrak::Options<'static> {
     let mut options = common_options();
+    // Both NIF renderers enable replacements, even when the map is empty.
+    // This also preserves >> markers when smart punctuation is enabled.
+    options.extension.replacements = Some(HashMap::new());
     options.extension.image_url_rewriter = None;
     options.extension.link_url_rewriter = None;
     options
@@ -144,11 +147,20 @@ fn greentext_preserved() {
 }
 
 #[test]
-fn separate_quotes_on_line_end() {
+fn blank_quoted_line_continues_blockquote() {
+    // Comrak 0.52 keeps a blank quoted line inside the surrounding blockquote.
     html(
         "> 1\n>\n> 2",
-        "<blockquote>\n<div class=\"paragraph\">1</div>\n</blockquote>\n<div class=\"paragraph\">&gt;</div>\n<blockquote>\n<div class=\"paragraph\">2</div>\n</blockquote>\n",
+        "<blockquote>\n<div class=\"paragraph\">1</div>\n<div class=\"paragraph\">2</div>\n</blockquote>\n",
     );
+}
+
+#[test]
+fn greentext_renderers_preserve_markers() {
+    let input = ">implying\n>>implying";
+    let expected = "<div class=\"paragraph\">&gt;implying<br />\n&gt;&gt;implying</div>\n";
+    assert_eq!(to_html(input, HashMap::new()), expected);
+    assert_eq!(to_html_unsafe(input, HashMap::new()), expected);
 }
 
 #[test]
