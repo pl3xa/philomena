@@ -87,6 +87,31 @@ defmodule PhilomenaWeb.LayoutView do
     Config.get(:footer)
   end
 
+  @doc """
+  Options for the header account switcher: every account the Cloudflare Access
+  identity may sign in as, plus a "Logged out" entry.
+
+  The current user is included even when they are outside the Access set —
+  signed in by password with an unrelated email — so the switcher never
+  renders someone else as the selected account.
+  """
+  def account_switcher_options(conn) do
+    accounts = conn.assigns[:cf_access_accounts] || []
+    user = conn.assigns.current_user
+
+    accounts =
+      if is_nil(user) or Enum.any?(accounts, &(&1.id == user.id)),
+        do: accounts,
+        else: [user | accounts]
+
+    Enum.map(accounts, &{&1.name, &1.id}) ++ [{"Logged out", "logout"}]
+  end
+
+  def account_switcher_selection(%{assigns: %{current_user: nil}}), do: "logout"
+  def account_switcher_selection(%{assigns: %{current_user: user}}), do: user.id
+
+  def current_path(conn), do: Phoenix.Controller.current_path(conn)
+
   def stylesheet_path(conn, %{theme: theme})
       when theme in @themes,
       do: static_path(conn, "/css/#{theme}.css")

@@ -12,6 +12,9 @@ defmodule PhilomenaWeb.Router do
     plug :put_secure_browser_headers
     plug :fetch_fingerprint
     plug :fetch_current_user
+    # Before everything that reads :current_user — it may sign in the
+    # Cloudflare Access default account and restart the request.
+    plug PhilomenaWeb.CloudflareAccessPlug
     plug PhilomenaWeb.ContentSecurityPolicyPlug
     plug PhilomenaWeb.CurrentFilterPlug
     plug PhilomenaWeb.ImageFilterPlug
@@ -59,7 +62,15 @@ defmodule PhilomenaWeb.Router do
     pipe_through [:browser, :redirect_if_user_is_authenticated]
 
     resources "/sessions", SessionController, only: [:new, :create], singleton: true
-    post "/sessions/cf_access/:user_id", SessionController, :cf_access_create
+  end
+
+  scope "/", PhilomenaWeb do
+    pipe_through [:browser]
+
+    # Not gated on the authentication state: the action re-verifies the Access
+    # JWT and only accepts an account from the freshly derived allowed set, so
+    # it doubles as the account switcher for a signed-in user.
+    post "/sessions/cf_access", SessionController, :cf_access_create
   end
 
   scope "/", PhilomenaWeb do

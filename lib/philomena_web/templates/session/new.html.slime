@@ -1,10 +1,15 @@
 h1 Sign in
 
-= if @cf_accounts != [] do
+= if @cf_access_accounts != [] do
   h2 One-click sign-in
   p You are verified by Cloudflare Access. Sign in directly:
-  = for account <- @cf_accounts do
-    p = button_to "#{account.name} - #{account.email}", ~p"/sessions/cf_access/#{account.id}", method: "post", class: "button"
+  = form_for @conn, ~p"/sessions/cf_access", [], fn f ->
+    .field
+      => checkbox f, :remember_me
+      = label f, :remember_me, "Remember me"
+
+    = for account <- @cf_access_accounts do
+      p = submit "#{account.name} - #{account.email}", name: "user_id", value: account.id, class: "button"
 
 = form_for @conn, ~p"/sessions", [as: :user], fn f ->
   = if @error_message do

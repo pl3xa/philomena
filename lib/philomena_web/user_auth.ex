@@ -17,6 +17,18 @@ defmodule PhilomenaWeb.UserAuth do
   @totp_auth_cookie "user_totp_auth"
   @totp_auth_options [sign: true, max_age: @max_age, same_site: "Lax"]
 
+  # Set when the user logs out, and cleared when they log back in. While it is
+  # present, Cloudflare Access auto-login leaves the session alone: being
+  # signed out is a choice the user made, not a state to be corrected.
+  @cf_access_opt_out_cookie "cf_access_opt_out"
+  @cf_access_opt_out_options [max_age: @max_age, same_site: "Lax"]
+
+  # Written just before an auto-login redirect. If the redirect comes back
+  # still signed out — a browser refusing the session cookie, say — the
+  # attempt is not repeated, so no redirect loop can form.
+  @cf_access_attempt_cookie "cf_access_auto_login"
+  @cf_access_attempt_options [max_age: 30, same_site: "Lax"]
+
   @doc """
   Logs the user in.
 
@@ -38,6 +50,7 @@ defmodule PhilomenaWeb.UserAuth do
     |> put_session(:user_token, token)
     |> put_session(:live_socket_id, "users_sessions:#{Base.url_encode64(token)}")
     |> maybe_write_remember_me_cookie(token, params)
+    |> delete_resp_cookie(@cf_access_opt_out_cookie)
     |> redirect(to: user_return_to || signed_in_path(conn))
   end
 
@@ -66,6 +79,7 @@ defmodule PhilomenaWeb.UserAuth do
     |> put_session(:live_socket_id, "users_sessions:#{Base.url_encode64(token)}")
     |> maybe_write_remember_me_cookie(token, params)
     |> maybe_put_totp_session(user, params)
+    |> delete_resp_cookie(@cf_access_opt_out_cookie)
     |> redirect(to: user_return_to || signed_in_path(conn))
   end
 
@@ -78,6 +92,47 @@ defmodule PhilomenaWeb.UserAuth do
   end
 
   defp maybe_put_totp_session(conn, _user, _params), do: conn
+
+  @doc """
+  Switches an already signed-in session over to another Cloudflare Access
+  account.
+
+  The outgoing session and TOTP tokens are revoked and their cookies are
+  cleared, so no credential for the previous account outlives the switch.
+  Persistence is inherited: the incoming account is remembered only if the
+  outgoing session was.
+  """
+  def switch_user(conn, user) do
+    params = if remembered?(conn), do: %{"remember_me" => "true"}, else: %{}
+
+    conn
+    |> revoke_session_tokens()
+    |> delete_resp_cookie(@remember_me_cookie)
+    |> delete_resp_cookie(@totp_auth_cookie)
+    |> log_in_user_totp_verified(user, params)
+  end
+
+  defp remembered?(conn) do
+    conn = fetch_cookies(conn, signed: [@remember_me_cookie])
+
+    is_binary(conn.cookies[@remember_me_cookie])
+  end
+
+  # Invalidates the session and TOTP tokens held by the current session and
+  # disconnects any live socket using them. Does not touch cookies.
+  defp revoke_session_tokens(conn) do
+    user_token = get_session(conn, :user_token)
+    user_token && Users.delete_session_token(user_token)
+
+    totp_token = get_session(conn, :totp_token)
+    totp_token && Users.delete_totp_token(totp_token)
+
+    if live_socket_id = get_session(conn, :live_socket_id) do
+      PhilomenaWeb.Endpoint.broadcast(live_socket_id, "disconnect", %{})
+    end
+
+    conn
+  end
 
   @doc """
   Writes TOTP session metadata for an authenticated user.
@@ -122,26 +177,41 @@ defmodule PhilomenaWeb.UserAuth do
   end
 
   @doc """
-  Logs the user out.
+  Logs the user out and redirects to `redirect_to`, the site root by default.
 
   It clears all session data for safety. See renew_session.
+
+  Logging out also opts the browser out of Cloudflare Access auto-login, which
+  would otherwise sign the user straight back in on the next page load.
   """
-  def log_out_user(conn) do
-    user_token = get_session(conn, :user_token)
-    user_token && Users.delete_session_token(user_token)
-
-    totp_token = get_session(conn, :totp_token)
-    totp_token && Users.delete_totp_token(totp_token)
-
-    if live_socket_id = get_session(conn, :live_socket_id) do
-      PhilomenaWeb.Endpoint.broadcast(live_socket_id, "disconnect", %{})
-    end
-
+  def log_out_user(conn, redirect_to \\ "/") do
     conn
+    |> revoke_session_tokens()
     |> renew_session()
     |> delete_resp_cookie(@remember_me_cookie)
     |> delete_resp_cookie(@totp_auth_cookie)
-    |> redirect(to: "/")
+    |> put_resp_cookie(@cf_access_opt_out_cookie, "1", @cf_access_opt_out_options)
+    |> redirect(to: redirect_to)
+  end
+
+  @doc """
+  Whether Cloudflare Access auto-login may sign this request in.
+
+  False once the user has logged out, and false for the request immediately
+  following an auto-login attempt that did not take.
+  """
+  def cf_access_auto_login_allowed?(conn) do
+    conn = fetch_cookies(conn)
+
+    is_nil(conn.cookies[@cf_access_opt_out_cookie]) and
+      is_nil(conn.cookies[@cf_access_attempt_cookie])
+  end
+
+  @doc """
+  Records that Cloudflare Access auto-login is being attempted for this browser.
+  """
+  def mark_cf_access_auto_login(conn) do
+    put_resp_cookie(conn, @cf_access_attempt_cookie, "1", @cf_access_attempt_options)
   end
 
   @doc """

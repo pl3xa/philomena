@@ -31,6 +31,10 @@ defmodule Philomena.CfAccessHelpers do
     Application.put_env(:philomena, :cf_access_aud, @aud)
     Application.put_env(:philomena, :cf_access_email_map, Keyword.get(opts, :email_map, ""))
 
+    # Always set, so a CF_ACCESS_DEFAULT_USER in the environment cannot switch
+    # auto-login on for tests that did not ask for it.
+    Application.put_env(:philomena, :cf_access_default_user, Keyword.get(opts, :default_user))
+
     Application.put_env(:philomena, :cf_access_jwks_fetch_fun, fn _url ->
       {:ok, %{"keys" => keys}}
     end)
@@ -39,6 +43,7 @@ defmodule Philomena.CfAccessHelpers do
       Application.delete_env(:philomena, :cf_access_team_domain)
       Application.delete_env(:philomena, :cf_access_aud)
       Application.delete_env(:philomena, :cf_access_email_map)
+      Application.delete_env(:philomena, :cf_access_default_user)
       Application.delete_env(:philomena, :cf_access_jwks_fetch_fun)
       Philomena.CloudflareAccess.JwksCache.reset()
     end)
