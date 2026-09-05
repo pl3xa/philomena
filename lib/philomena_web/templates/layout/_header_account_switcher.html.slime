@@ -1,0 +1,4 @@
+= if @cf_access_accounts != [] do
+  = form_for @conn, ~p"/sessions/cf_access", [class: "header__filter-form", id: "account-quick-form"], fn _f ->
+    input type="hidden" name="return_to" value=current_path(@conn)
+    = select :cf_access, :user_id, account_switcher_options(@conn), name: "user_id", id: "account-quick-menu", class: "input header__input", selected: account_switcher_selection(@conn), title: "Switch account", data: [change_submit: "#account-quick-form"], autocomplete: "off"

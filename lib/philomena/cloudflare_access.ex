@@ -137,5 +137,45 @@ defmodule Philomena.CloudflareAccess do
   defp classify_pattern("@" <> domain), do: {:domain, domain}
   defp classify_pattern(email), do: {:email, email}
 
+  @doc """
+  Picks the account to sign in automatically out of the allowed set, or `nil`
+  when auto-login is unconfigured or the configured account is not among them.
+
+  The configured value is matched case-insensitively against both the account
+  name and its email.
+
+  ## Examples
+
+      iex> default_account([%User{name: "plexa"}])
+      %User{name: "plexa"}
+
+  """
+  @spec default_account([struct()]) :: struct() | nil
+  def default_account(accounts) when is_list(accounts) do
+    case default_user() do
+      nil ->
+        nil
+
+      name ->
+        Enum.find(accounts, fn account ->
+          String.downcase(account.name) == name or String.downcase(account.email) == name
+        end)
+    end
+  end
+
+  @spec default_user() :: String.t() | nil
+  defp default_user do
+    case Application.get_env(:philomena, :cf_access_default_user) do
+      value when is_binary(value) ->
+        case String.trim(value) do
+          "" -> nil
+          name -> String.downcase(name)
+        end
+
+      _ ->
+        nil
+    end
+  end
+
   defp present?(value), do: is_binary(value) and value != ""
 end

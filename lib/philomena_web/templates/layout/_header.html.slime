@@ -64,6 +64,8 @@ header.header
             span.header__counter.hidden
               | 0
 
+        = render PhilomenaWeb.LayoutView, "_header_account_switcher.html", assigns
+
         a.header__link.hide-mobile href="/filters" title="Filters"
           i.fa.fa-filter
           span.hide-limited-desktop< Filters
@@ -118,6 +120,8 @@ header.header
               i.fa.fa-fw.fa-sign-out-alt>
               | Logout
       - else
+        = render PhilomenaWeb.LayoutView, "_header_account_switcher.html", assigns
+
         a.header__link.hide-mobile href="/filters"
           | Filters (
           = @current_filter.name

@@ -42,7 +42,8 @@ config :philomena,
 config :philomena,
   cf_access_team_domain: System.get_env("CF_ACCESS_TEAM_DOMAIN"),
   cf_access_aud: System.get_env("CF_ACCESS_AUD"),
-  cf_access_email_map: System.get_env("CF_ACCESS_EMAIL_MAP", "")
+  cf_access_email_map: System.get_env("CF_ACCESS_EMAIL_MAP", ""),
+  cf_access_default_user: System.get_env("CF_ACCESS_DEFAULT_USER")
 
 app_dir = System.get_env("APP_DIR", File.cwd!())
 
