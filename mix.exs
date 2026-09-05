@@ -36,7 +36,7 @@ defmodule Philomena.MixProject do
   # Type `mix help deps` for examples and options.
   defp deps do
     [
-      {:phoenix, "~> 1.8"},
+      {:phoenix, "~> 1.8.9"},
       {:phoenix_pubsub, "~> 2.1"},
       {:phoenix_ecto, "~> 4.6"},
       {:ecto_sql, "~> 3.9"},
@@ -65,7 +65,7 @@ defmodule Philomena.MixProject do
       {:redix, "~> 1.4"},
       {:remote_ip, "~> 1.2"},
       {:briefly, "~> 0.5"},
-      {:req, "~> 0.5"},
+      {:req, "~> 0.6.1"},
       {:exq, "~> 0.21"},
       {:ex_aws, "~> 2.5"},
       {:ex_aws_s3, "~> 2.5"},
