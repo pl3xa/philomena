@@ -6,7 +6,8 @@ const messageUrl = 'https://discord.com/channels/261616212012695553/376978325681
 let request: ReturnType<typeof vi.fn>;
 
 function mount(urls = [messageUrl]) {
-  document.body.innerHTML = '<div class="js-sourcesauce"><form id="source-form"></form><div id="image-source"></div></div>';
+  document.body.innerHTML =
+    '<div class="js-sourcesauce"><form id="source-form"></form><div id="image-source"></div></div>';
   const container = document.querySelector('#image-source')!;
   return urls.map(url => {
     const row = document.createElement('div');
@@ -154,9 +155,9 @@ it('decorates on page initialization and after an AJAX source edit', async () =>
   const replacement = document.querySelector('.js-sourcesauce')!.outerHTML;
   imageSourcesCreator();
   await vi.waitFor(() => expect(link.textContent).toContain('2026.09.18'));
-  document.querySelector('#source-form')!.dispatchEvent(
-    new CustomEvent('fetchcomplete', { bubbles: true, detail: new Response(replacement) }),
-  );
+  document
+    .querySelector('#source-form')!
+    .dispatchEvent(new CustomEvent('fetchcomplete', { bubbles: true, detail: new Response(replacement) }));
   await vi.waitFor(() => {
     expect(link.isConnected).toBe(false);
     expect(document.querySelector('.image_source__link a')!.textContent).toContain('2026.09.18');

@@ -57,10 +57,7 @@ export function createDiscordSourceDecorator() {
         if (response.status === 404) return null;
         if (!response.ok) throw new Error('Tag lookup failed');
         const { tag } = await response.json();
-        if (
-          typeof tag?.name !== 'string' ||
-          (tag.aliased_tag !== null && typeof tag.aliased_tag !== 'string')
-        ) {
+        if (typeof tag?.name !== 'string' || (tag.aliased_tag !== null && typeof tag.aliased_tag !== 'string')) {
           throw new Error('Invalid tag response');
         }
         return tag as Tag;

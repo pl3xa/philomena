@@ -26,7 +26,7 @@ defmodule Philomena.Images.TempShare do
     |> binary_part(0, 16)
   end
 
-  @spec url(Image.t(), integer(), integer()) :: String.t()
+  @spec url(%Image{}, integer(), integer()) :: String.t()
   def url(%Image{} = image, x, y) do
     filename =
       image.image_name
