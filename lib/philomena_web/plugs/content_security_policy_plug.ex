@@ -5,6 +5,7 @@ defmodule PhilomenaWeb.ContentSecurityPolicyPlug do
   @allowed_sources [
     :script_src,
     :frame_src,
+    :img_src,
     :style_src
   ]
 
@@ -22,6 +23,7 @@ defmodule PhilomenaWeb.ContentSecurityPolicyPlug do
       script_src = Keyword.get(config, :script_src, [])
       style_src = Keyword.get(config, :style_src, [])
       frame_src = Keyword.get(config, :frame_src, nil)
+      img_src = Keyword.get(config, :img_src, [])
 
       csp_config = [
         {:default_src, ["'self'"]},
@@ -33,7 +35,7 @@ defmodule PhilomenaWeb.ContentSecurityPolicyPlug do
         {:frame_src, frame_src || ["'none'"]},
         {:form_action, ["'self'"]},
         {:manifest_src, ["'self'"]},
-        {:img_src, ["'self'", "blob:", "data:", cdn_uri, camo_uri]},
+        {:img_src, ["'self'", "blob:", "data:", cdn_uri, camo_uri] ++ img_src},
         {:media_src, ["'self'", "blob:", "data:", cdn_uri, camo_uri]}
       ]
 

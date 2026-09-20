@@ -77,3 +77,21 @@ And if everything goes wrong:
     git push -f production master
 
 (to be repeated until it works again)
+
+## Derpibooru tag imports
+
+Image pages offer reverse lookup or a manual Derpibooru ID to signed-in metadata
+editors. Reverse lookup creates the same one-hour temporary share as the timer
+button. Each candidate previews local tag additions, including aliases,
+implications, and locked-tag rules. Merging preserves existing tags and writes an
+approved audit comment as `system`, naming the initiating user and source image.
+Conflicting rating tags must be resolved manually before merging. Previews expire
+after 15 minutes; changed additions require another review.
+
+Set `DERPIBOORU_API_KEY` in the existing 1Password Environment, run `bin/sync-env`,
+and recreate the app container to load it. Never put its value in tracked files.
+The account named `system` must already exist; it does not require staff privileges.
+`DERPIBOORU_SYSTEM_USER` can override that name when supplied to the app environment.
+The feature is disabled without an API key and refuses writes without the audit
+account. API credentials stay on the server. Lookups are throttled and cached
+briefly, and local sharing-control tags are excluded from imports.

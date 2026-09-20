@@ -11,6 +11,10 @@ config :bcrypt_elixir,
   log_rounds: String.to_integer(System.get_env("BCRYPT_ROUNDS", "12"))
 
 config :philomena,
+  derpibooru_api_key: System.get_env("DERPIBOORU_API_KEY"),
+  derpibooru_system_user: System.get_env("DERPIBOORU_SYSTEM_USER", "system")
+
+config :philomena,
   anonymous_name_salt: System.fetch_env!("ANONYMOUS_NAME_SALT"),
   hcaptcha_secret_key: System.fetch_env!("HCAPTCHA_SECRET_KEY"),
   hcaptcha_site_key: System.fetch_env!("HCAPTCHA_SITE_KEY"),

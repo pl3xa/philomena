@@ -614,16 +614,27 @@ defmodule Philomena.Images do
        }}
 
   """
-  def update_tags(%Image{} = image, attribution, attrs) do
-    old_tags = Tags.get_or_create_tags(attrs["old_tag_input"])
-    new_tags = Tags.get_or_create_tags(attrs["tag_input"])
+  # Callers composing a larger transaction may defer indexing and rate counters;
+  # they must publish those effects only after the outer transaction commits.
+  def update_tags(%Image{} = image, attribution, attrs, opts \\ []) do
+    deferred? = Keyword.get(opts, :defer_side_effects, false)
+    old_tags = Tags.get_or_create_tags(attrs["old_tag_input"], reindex: not deferred?)
+    new_tags = Tags.get_or_create_tags(attrs["tag_input"], reindex: not deferred?)
 
     Multi.new()
     |> Multi.run(:image, fn repo, _chg ->
-      image = repo.preload(image, [:tags, :locked_tags])
+      # Serialize tag-editor updates and apply their intended diff to fresh tags.
+      image =
+        Image
+        |> where(id: ^image.id)
+        |> lock("FOR UPDATE")
+        |> repo.one!()
+        |> repo.preload([:user, :sources, :tags, :locked_tags])
+
+      excluded = image.locked_tags ++ Keyword.get(opts, :excluded_tags, [])
 
       image
-      |> Image.tag_changeset(%{}, old_tags, new_tags, image.locked_tags)
+      |> Image.tag_changeset(%{}, old_tags, new_tags, excluded)
       |> repo.update()
       |> case do
         {:ok, image} ->
@@ -673,7 +684,7 @@ defmodule Philomena.Images do
     |> Repo.transaction()
     |> case do
       {:ok, %{image: {image, _added, _removed}}} = res ->
-        update_tag_change_limits_after_commit(image, attribution)
+        if not deferred?, do: update_tag_change_limits_after_commit(image, attribution)
 
         res
 

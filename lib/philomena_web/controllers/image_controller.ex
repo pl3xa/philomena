@@ -59,6 +59,17 @@ defmodule PhilomenaWeb.ImageController do
     image = conn.assigns.image
     user = conn.assigns.current_user
 
+    conn =
+      if user && Philomena.Derpibooru.Client.configured?() &&
+           Canada.Can.can?(user, :edit_metadata, image) do
+        PhilomenaWeb.ContentSecurityPolicyPlug.permit_source(conn, :img_src, [
+          "https://derpicdn.net",
+          "https://derpibooru.org"
+        ])
+      else
+        conn
+      end
+
     Images.clear_image_notification(image, user)
 
     # Update the notification ticker in the header

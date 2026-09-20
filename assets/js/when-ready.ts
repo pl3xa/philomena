@@ -23,6 +23,7 @@ import { setupSettings } from './settings';
 import { listenForKeys } from './shortcuts';
 import { initTagDropdown } from './tags';
 import { setupTagListener } from './tagsinput';
+import { setupDerpibooruTags } from './derpibooru-tags';
 import { setupTempShare } from './temp-share';
 import { setupTagEvents } from './tagsmisc';
 import { setupTimestamps } from './timeago';
@@ -54,6 +55,7 @@ const functions = [
   listenForKeys,
   initTagDropdown,
   setupTagListener,
+  setupDerpibooruTags,
   setupTempShare,
   setupTagEvents,
   setupTimestamps,

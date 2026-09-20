@@ -1,0 +1,15 @@
+= if @conn.assigns.current_user && can?(@conn, :edit_metadata, @image) && !@conn.assigns.current_ban do
+  .block.derpibooru-tags.js-derpibooru-tags data-image-id=@image.id
+    .block__header
+      span.block__header__title Derpibooru tags
+    .block__content
+      = if Philomena.Derpibooru.Client.configured?() do
+        .derpibooru-tags__controls
+          button.button.js-derpibooru-check type="button" Check Derpibooru tags
+          span aria-hidden="true" |
+          button.button.js-derpibooru-manual type="button" Use manual ID
+        p Checking creates a temporary public share for one hour so Derpibooru can search for matching images.
+        p.js-derpibooru-status role="status" aria-live="polite"
+        .js-derpibooru-results
+      - else
+        p Derpibooru tag lookup is not configured.

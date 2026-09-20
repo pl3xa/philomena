@@ -318,3 +318,29 @@ div.image-container video {
   color: inherit;
   cursor: pointer;
 }
+
+.derpibooru-tags__controls {
+  display: flex;
+  align-items: center;
+  gap: 0.75em;
+  flex-wrap: wrap;
+}
+
+.derpibooru-tags__result {
+  display: flex;
+  align-items: center;
+  gap: 1em;
+  padding: 1em 0;
+  border-top: 1px solid currentcolor;
+  flex-wrap: wrap;
+}
+
+.derpibooru-tags__thumbnail {
+  object-fit: contain;
+}
+
+.derpibooru-tags__details {
+  flex: 1 1 20em;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}

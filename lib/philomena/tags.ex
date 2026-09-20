@@ -80,15 +80,14 @@ defmodule Philomena.Tags do
 
   """
   @spec get_or_create_tags(String.t()) :: list()
-  def get_or_create_tags(tag_list) do
+  def get_or_create_tags(tag_list, opts \\ []) do
     case Tag.parse_tag_list(tag_list) do
       [] -> []
-      tag_names -> get_or_create_non_empty_tags_list(tag_names)
+      tag_names -> get_or_create_non_empty_tags_list(tag_names, opts)
     end
   end
 
-  @spec get_or_create_non_empty_tags_list(list(String.t())) :: list()
-  defp get_or_create_non_empty_tags_list(tag_names) do
+  defp get_or_create_non_empty_tags_list(tag_names, opts) do
     tags =
       tag_names
       |> Enum.map(fn tag_name ->
@@ -140,8 +139,7 @@ defmodule Philomena.Tags do
           raise "get_or_create_tags failed: #{inspect(result)}\ntag_names: #{inspect(tag_names)}"
       end
 
-    new_tags
-    |> reindex_tags()
+    if Keyword.get(opts, :reindex, true), do: reindex_tags(new_tags)
 
     all_tags
     |> Enum.map(&(&1.aliased_tag || &1))

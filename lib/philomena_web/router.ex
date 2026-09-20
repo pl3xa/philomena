@@ -209,6 +209,11 @@ defmodule PhilomenaWeb.Router do
       resources "/vote", Image.VoteController, only: [:create, :delete], singleton: true
       resources "/fave", Image.FaveController, only: [:create, :delete], singleton: true
       resources "/hide", Image.HideController, only: [:create, :delete], singleton: true
+
+      resources "/derpibooru_tags", Image.DerpibooruTagController,
+        only: [:create, :update],
+        singleton: true
+
       resources "/temp_share", Image.TempShareController, only: [:create], singleton: true
       resources "/public_share", Image.PublicShareController, only: [:create], singleton: true
       resources "/approve", Image.ApproveController, only: [:create], singleton: true
