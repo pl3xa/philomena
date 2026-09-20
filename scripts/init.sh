@@ -7,7 +7,16 @@ set -euo pipefail
 
 function fetch {
   local url="$1"
-  step curl --fail --silent --show-error --location --retry 5 --retry-all-errors "$url"
+  local github_token="${GH_TOKEN:-${GITHUB_TOKEN:-}}"
+  local headers=()
+
+  if [[ "$url" == https://api.github.com/* && -n "$github_token" ]]; then
+    headers+=(--header "Authorization: Bearer $github_token")
+  fi
+
+  # Do not use step here: it prints arguments, including authorization headers.
+  info "Fetching $url"
+  curl --fail --silent --show-error --location --retry 5 --retry-all-errors "${headers[@]}" "$url"
 }
 
 function fetch_github_artifact_url {
