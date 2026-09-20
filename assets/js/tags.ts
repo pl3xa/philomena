@@ -4,10 +4,50 @@
 
 import { $$, showEl, makeEl, hideIf, $, setClassIf } from './utils/dom';
 import { assertNotNull, assertNotUndefined } from './utils/assert';
+import { fetchJson } from './utils/requests';
 import '../types/ujs';
 
 type TagDropdownActionFunction = () => void;
 type TagDropdownActionList = Record<string, TagDropdownActionFunction>;
+
+const pendingAliases = new Set<string>();
+
+async function aliasTag(event: MouseEvent, link: HTMLAnchorElement) {
+  event.preventDefault();
+  const endpoint = assertNotUndefined(link.dataset.tagAliasUrl);
+  if (pendingAliases.has(endpoint)) return;
+
+  const target = window.prompt('What do you want to alias this tag to');
+  if (target === null) return;
+  if (!target.trim()) {
+    window.alert('Please enter a target tag name.');
+    return;
+  }
+
+  pendingAliases.add(endpoint);
+  link.setAttribute('aria-disabled', 'true');
+
+  try {
+    // eslint-disable-next-line camelcase
+    const response = await fetchJson('PUT', endpoint, { tag: { target_tag: target.trim() } });
+    const result = response.headers.get('content-type')?.includes('application/json') ? await response.json() : null;
+
+    if (!response.ok || result?.success !== true) {
+      let reason = `Unexpected server response (HTTP ${response.status}).`;
+      if (response.status === 403) reason = 'You do not have permission to alias this tag.';
+      if (response.redirected) reason = 'Your session may have expired. Sign in and try again.';
+      if (typeof result?.error === 'string') reason = result.error;
+      throw new Error(reason);
+    }
+
+    window.location.reload();
+  } catch (error) {
+    window.alert(`Failed to alias tag: ${error instanceof Error ? error.message : 'Request failed.'}`);
+  } finally {
+    pendingAliases.delete(endpoint);
+    link.removeAttribute('aria-disabled');
+  }
+}
 
 interface TagState {
   name: string;
@@ -113,6 +153,9 @@ function createTagDropdown(tagElem: HTMLSpanElement) {
   // Dropdown links
   if (!userIsSignedIn) showEl(signIn);
   if (userIsSignedIn && !userCanEditFilter) showEl(filter);
+
+  const aliasLink = $<HTMLAnchorElement>('[data-tag-alias-url]', tag.elem);
+  aliasLink?.addEventListener('click', event => aliasTag(event, aliasLink));
 
   const refresh = () => statesList.forEach(state => tag.refresh(state));
 

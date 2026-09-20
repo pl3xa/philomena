@@ -382,21 +382,62 @@ defmodule Philomena.Tags do
 
   """
   def alias_tag(%Tag{} = tag, attrs) do
-    target_tag = Repo.get_by(Tag, name: String.downcase(attrs["target_tag"]))
+    result =
+      Repo.transaction(fn ->
+        target_name = attrs["target_tag"]
 
-    tag
-    |> Repo.preload(:aliased_tag)
-    |> Tag.alias_changeset(target_tag)
-    |> Repo.update()
-    |> case do
+        unless is_binary(target_name) and Tag.clean_tag_name(target_name) != "" and
+                 not String.contains?(target_name, ",") do
+          Repo.rollback(alias_error(tag, "must specify one non-empty target tag name"))
+        end
+
+        target_name = Tag.clean_tag_name(target_name)
+
+        # ON CONFLICT handles another request creating the same target concurrently.
+        target_changeset = Tag.creation_changeset(%Tag{}, %{name: target_name})
+
+        case Repo.insert(target_changeset,
+               on_conflict: :nothing,
+               conflict_target: :name
+             ) do
+          {:ok, _} -> :ok
+          {:error, _} -> Repo.rollback(alias_error(tag, "could not create the target tag"))
+        end
+
+        target_tag = Repo.get_by!(Tag, name: target_name)
+
+        tag
+        |> Repo.preload(:aliased_tag)
+        |> Tag.alias_changeset(target_tag)
+        |> Repo.update()
+        |> case do
+          {:ok, tag} -> tag
+          {:error, changeset} -> Repo.rollback(changeset)
+        end
+      end)
+
+    case result do
       {:ok, tag} ->
-        Exq.enqueue(Exq, "indexing", TagAliasWorker, [tag.id, target_tag.id])
+        # Enqueue after commit so a worker can see a newly created target.
+        case Exq.enqueue(Exq, "indexing", TagAliasWorker, [tag.id, tag.aliased_tag_id]) do
+          {:ok, _job} ->
+            {:ok, tag}
 
-        {:ok, tag}
+          {:error, _reason} ->
+            {:error,
+             alias_error(tag, "was saved, but processing could not be queued; please retry")}
+        end
 
       error ->
         error
     end
+  end
+
+  defp alias_error(tag, message) do
+    tag
+    |> Ecto.Changeset.change()
+    |> Ecto.Changeset.add_error(:aliased_tag, message)
+    |> Map.put(:action, :update)
   end
 
   @doc """

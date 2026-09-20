@@ -18,16 +18,40 @@ defmodule PhilomenaWeb.Tag.AliasController do
     render(conn, "edit.html", title: "Editing Tag Alias", changeset: changeset)
   end
 
-  def update(conn, %{"tag" => tag_params}) do
+  def update(conn, params) do
+    tag_params = if is_map(params["tag"]), do: params["tag"], else: %{}
+
     case Tags.alias_tag(conn.assigns.tag, tag_params) do
       {:ok, tag} ->
-        conn
-        |> put_flash(:info, "Tag alias queued.")
-        |> moderation_log(details: &log_details/2, data: tag)
-        |> redirect(to: ~p"/tags/#{tag}/alias/edit")
+        conn = moderation_log(conn, details: &log_details/2, data: tag)
+
+        if conn.assigns.ajax? do
+          json(conn, %{success: true})
+        else
+          conn
+          |> put_flash(:info, "Tag alias queued.")
+          |> redirect(to: ~p"/tags/#{tag}/alias/edit")
+        end
 
       {:error, changeset} ->
-        render(conn, "edit.html", changeset: changeset)
+        if conn.assigns.ajax? do
+          errors =
+            Ecto.Changeset.traverse_errors(
+              changeset,
+              &PhilomenaWeb.ErrorHelpers.translate_error/1
+            )
+
+          reason =
+            Enum.map_join(errors, "; ", fn {field, messages} ->
+              "#{Phoenix.Naming.humanize(field)} #{Enum.join(messages, ", ")}"
+            end)
+
+          conn
+          |> put_status(:unprocessable_entity)
+          |> json(%{success: false, error: reason})
+        else
+          render(conn, "edit.html", changeset: changeset)
+        end
     end
   end
 

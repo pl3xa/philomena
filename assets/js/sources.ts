@@ -1,6 +1,7 @@
 import { assertNotNull } from './utils/assert';
 import { $ } from './utils/dom';
 import { inputDuplicatorCreator } from './input-duplicator';
+import { createDiscordSourceDecorator } from './discord-sources';
 import '../types/ujs';
 
 function setupInputs() {
@@ -13,7 +14,9 @@ function setupInputs() {
 }
 
 export function imageSourcesCreator() {
+  const decorateDiscordSources = createDiscordSourceDecorator();
   setupInputs();
+  decorateDiscordSources();
 
   document.addEventListener('fetchcomplete', ({ target, detail }) => {
     if (target.matches('#source-form')) {
@@ -22,6 +25,7 @@ export function imageSourcesCreator() {
       detail.text().then(text => {
         sourceSauce.outerHTML = text;
         setupInputs();
+        decorateDiscordSources();
       });
     }
   });

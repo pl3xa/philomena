@@ -30,3 +30,8 @@
 
     a.tag__dropdown__link.hidden href="/sessions/new" Sign in to Watch
     a.tag__dropdown__link.hidden href="/filters" Filter
+
+    = if can?(@conn, :alias, @tag) do
+      a.tag__dropdown__link data-tag-alias-url=~p"/tags/#{@tag}/alias" href=~p"/tags/#{@tag}/alias/edit"
+        i.fa.fa-link.tag__dropdown-icon
+        |  Alias
