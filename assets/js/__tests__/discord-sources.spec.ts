@@ -105,7 +105,7 @@ it('leaves unrelated links, non-message Discord URLs, and invalid IDs alone', as
     messageUrl.replace('discord.com', 'discord.com.evil.example'),
     messageUrl.replace('discord.com', 'example.com'),
     messageUrl.replace('https:', 'ftp:'),
-    messageUrl.replace('/261616212012695553/', '/@me/'),
+    messageUrl.replace('/261616212012695553/', '/@other/'),
     messageUrl.replace('1550650573861294203', '18446744073709551616'),
     'https://discord.com/channels/261616212012695553/376978325681471489',
     'https://discord.gg/invite',

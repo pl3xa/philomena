@@ -32,8 +32,8 @@ function parseMessage(href: string) {
     ) {
       return null;
     }
-    const match = /^\/channels\/(\d+)\/(\d+)\/(\d+)\/?$/.exec(url.pathname);
-    if (!match || !match.slice(1).every(isSnowflake)) return null;
+    const match = /^\/channels\/(@me|\d+)\/(\d+)\/(\d+)\/?$/.exec(url.pathname);
+    if (!match || (match[1] !== '@me' && !isSnowflake(match[1])) || !match.slice(2).every(isSnowflake)) return null;
 
     return { guild: match[1], channel: match[2], date: messageDate(match[3]) };
   } catch {
@@ -100,12 +100,13 @@ export function createDiscordSourceDecorator() {
 
         const label = link.querySelector('strong') ?? document.createElement('strong');
         label.title = 'Discord server / channel / message date (UTC)';
-        label.textContent = `guildid:${message.guild} / channelid:${message.channel} / ${message.date}`;
+        const guildLabel = message.guild === '@me' ? 'Direct Messages' : `guildid:${message.guild}`;
+        label.textContent = `${guildLabel} / channelid:${message.channel} / ${message.date}`;
         link.textContent = '';
         link.append(label);
 
         const [guild, channel] = await Promise.all([
-          resolveTag('guildid', message.guild),
+          message.guild === '@me' ? guildLabel : resolveTag('guildid', message.guild),
           resolveTag('channelid', message.channel),
         ]);
         label.textContent = `${guild} / ${channel} / ${message.date}`;
