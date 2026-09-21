@@ -161,10 +161,22 @@ defmodule Philomena.Derpibooru.Sweep do
         state =
           state
           |> Map.put("consecutive_failures", 0)
+          |> Map.delete("last_error")
           |> Map.put("next_request_at_ms", now_ms() + @interval)
 
         save(path, state)
         {merge_match(image, candidates, attribution), state}
+
+      {:error, {:unavailable_candidates, count}} ->
+        state =
+          state
+          |> Map.put("consecutive_failures", 0)
+          |> Map.delete("last_error")
+          |> Map.put("next_request_at_ms", now_ms() + @interval)
+
+        save(path, state)
+        status = if count > 1, do: "multiple_matches", else: "unavailable_match"
+        {%{status: status, candidate_count: count, includes_unavailable: true}, state}
 
       {:error, reason} when reason in [:unauthorized, :not_configured] ->
         save(

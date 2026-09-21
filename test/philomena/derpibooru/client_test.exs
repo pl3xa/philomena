@@ -58,6 +58,20 @@ defmodule Philomena.Derpibooru.ClientTest do
     assert {:ok, []} = Client.reverse("https://s.plexa.dev/other")
   end
 
+  test "hidden matches retain the full count instead of becoming a single visible match" do
+    Req.Test.expect(
+      __MODULE__,
+      &Req.Test.json(&1, %{
+        images: [
+          %{id: 1, tags: ["safe"], width: 100, height: 100},
+          %{id: 2, hidden_from_users: true, tags: nil, width: nil, height: nil}
+        ]
+      })
+    )
+
+    assert {:error, {:unavailable_candidates, 2}} = Client.reverse("https://s.plexa.dev/redacted")
+  end
+
   test "handles deleted images, malformed responses, timeouts and authentication errors" do
     for {response, expected} <- [{404, :not_found}, {403, :unauthorized}, {500, :upstream}] do
       Req.Test.expect(__MODULE__, &Plug.Conn.send_resp(&1, response, ""))

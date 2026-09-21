@@ -104,6 +104,10 @@ defmodule PhilomenaWeb.Image.DerpibooruTagController do
   defp failure(conn, reason) do
     {status, message} =
       case reason do
+        {:unavailable_candidates, _count} ->
+          {:unprocessable_entity,
+           "Derpibooru returned hidden or deleted matches. Use a manual ID to select an available image."}
+
         :invalid_id ->
           {:bad_request, "Enter a positive numeric Derpibooru image ID."}
 

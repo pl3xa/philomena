@@ -24,7 +24,10 @@ defmodule Philomena.Derpibooru.Client do
       if Enum.all?(candidates, &match?({:ok, _}, &1)) do
         {:ok, candidates |> Enum.map(&elem(&1, 1)) |> Enum.uniq_by(& &1.id)}
       else
-        {:error, :invalid_response}
+        # Reverse search includes hidden/deleted records with redacted metadata.
+        # Preserve the raw count so callers cannot mistake one visible result
+        # among several unavailable matches for an unambiguous match.
+        {:error, {:unavailable_candidates, length(images)}}
       end
     else
       {:error, reason} -> {:error, reason}
