@@ -129,6 +129,8 @@ defmodule Philomena.Derpibooru.Client do
       {:ok,
        %{
          id: id,
+         width: data["width"],
+         height: data["height"],
          url: "https://derpibooru.org/images/#{id}",
          thumbnail: thumbnail_url(representations["thumb"]),
          tags: tags,

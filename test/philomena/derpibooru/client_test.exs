@@ -30,6 +30,8 @@ defmodule Philomena.Derpibooru.ClientTest do
       Req.Test.json(Plug.Conn.put_resp_header(conn, "cache-control", "max-age=60"), %{
         image: %{
           id: 123,
+          width: 640,
+          height: 480,
           tags: ["safe"],
           representations: %{thumb: "https://derpicdn.net/thumb.png"}
         }
@@ -37,6 +39,7 @@ defmodule Philomena.Derpibooru.ClientTest do
     end)
 
     assert {:ok, image} = Client.image(123)
+    assert {image.width, image.height} == {640, 480}
     assert image.url == "https://derpibooru.org/images/123"
     refute inspect(image) =~ "test-only-key"
     assert {:ok, ^image} = Client.image(123)

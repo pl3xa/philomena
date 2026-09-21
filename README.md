@@ -95,3 +95,15 @@ The account named `system` must already exist; it does not require staff privile
 The feature is disabled without an API key and refuses writes without the audit
 account. API credentials stay on the server. Lookups are throttled and cached
 briefly, and local sharing-control tags are excluded from imports.
+
+A one-time bulk sweep can be started with
+`mix derpibooru.sweep /persistent/path/state.json`. It freezes the current maximum
+image ID and resumes from that file; a completed checkpoint never starts a second
+sweep. Requests are spaced at least ten seconds apart, retry with exponential
+backoff (up to ten minutes), and respect upstream retry delays. Six failed attempts
+record that image as failed and continue, preserving the backoff across images.
+Hidden/deleted images and images the system user cannot edit are recorded as skips.
+Only a single reverse-search candidate with width and height within 10% and aspect
+ratio within 2% can merge. Normal tag validation still applies. Both tag history
+and the audit comment are attributed to `system`. Per-image outcomes are appended
+to `state.json.jsonl`; create `state.json.stop` to pause after the current image.

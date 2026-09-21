@@ -64,6 +64,65 @@ defmodule Philomena.Derpibooru.TagMergeTest do
       |> Enum.map(& &1.name)
       |> Enum.sort()
 
+  test "sweep requires exactly one dimension-compatible result and attributes merges to system",
+       ctx do
+    source = candidate(["safe", "sweep addition"]) |> Map.merge(%{width: 100, height: 100})
+    attribution = Keyword.put(ctx.attribution, :user, ctx.system)
+
+    assert %{status: "no_match"} =
+             Philomena.Derpibooru.Sweep.merge_match(ctx.image, [], attribution)
+
+    assert %{status: "multiple_matches"} =
+             Philomena.Derpibooru.Sweep.merge_match(
+               ctx.image,
+               [source, %{source | id: 124, width: 999}],
+               attribution
+             )
+
+    assert %{status: "dimensions_differ"} =
+             Philomena.Derpibooru.Sweep.merge_match(
+               ctx.image,
+               [%{source | width: 999}],
+               attribution
+             )
+
+    assert Repo.aggregate(Comment, :count) == 0
+
+    assert %{status: "merged", tags_added: 1} =
+             Philomena.Derpibooru.Sweep.merge_match(ctx.image, [source], attribution)
+
+    assert Repo.one!(TagChange).user_id == ctx.system.id
+    assert Repo.one!(Comment).user_id == ctx.system.id
+    assert Repo.one!(Comment).body =~ "system"
+
+    assert %{status: "unchanged"} =
+             Philomena.Derpibooru.Sweep.merge_match(ctx.image, [source], attribution)
+
+    assert Repo.aggregate(Comment, :count) == 1
+  end
+
+  test "sweep checkpoints its snapshot and a completed run cannot run again", ctx do
+    old_key = Application.get_env(:philomena, :derpibooru_api_key)
+    Application.put_env(:philomena, :derpibooru_api_key, "test-only-key")
+    ctx.system |> change(verified: true) |> Repo.update!()
+    directory = Path.join(System.tmp_dir!(), "derpi-sweep-#{System.unique_integer([:positive])}")
+    path = Path.join(directory, "state.json")
+
+    on_exit(fn ->
+      Application.put_env(:philomena, :derpibooru_api_key, old_key)
+      File.rm_rf!(directory)
+    end)
+
+    state = Philomena.Derpibooru.Sweep.run(path)
+    assert state["status"] == "completed"
+    assert state["processed"] == 1
+    assert state["max_image_id"] == ctx.image.id
+    assert state["counts"] == %{"skipped_unavailable" => 1}
+    assert JSON.decode!(File.read!(path)) == state
+    assert Philomena.Derpibooru.Sweep.run(path) == state
+    assert File.read!(path <> ".jsonl") |> String.split("\n", trim: true) |> length() == 1
+  end
+
   test "preview resolves aliases, implications and locks without writing tags", %{
     image: image,
     user: user
