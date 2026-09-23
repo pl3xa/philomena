@@ -52,6 +52,8 @@ defmodule Philomena.Derpibooru.Sweep do
     )
   end
 
+  # The checkpoint path is supplied by the operator through the Mix task.
+  # sobelow_skip ["Traversal.FileModule"]
   defp load_or_initialize(path) do
     if File.exists?(path) do
       JSON.decode!(File.read!(path))
@@ -262,6 +264,8 @@ defmodule Philomena.Derpibooru.Sweep do
   def merge_match(_image, candidates, _attribution),
     do: %{status: "multiple_matches", candidates: Enum.map(candidates, & &1.id)}
 
+  # The event log path derives only from the operator-supplied checkpoint path.
+  # sobelow_skip ["Traversal.FileModule"]
   defp finish_image(state, outcome, image_id, path) do
     event = Map.merge(outcome, %{image_id: image_id, at: timestamp()})
     line = JSON.encode!(event)
@@ -276,6 +280,8 @@ defmodule Philomena.Derpibooru.Sweep do
     |> then(&save(path, &1))
   end
 
+  # The checkpoint path is supplied by the operator through the Mix task.
+  # sobelow_skip ["Traversal.FileModule"]
   defp save(path, state) do
     state = Map.put(state, "updated_at", timestamp())
     File.mkdir_p!(Path.dirname(path))
