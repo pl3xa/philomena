@@ -236,7 +236,7 @@ defmodule Philomena.Derpibooru.Sweep do
           preview.errors != [] ->
             %{status: "tag_conflict", derpibooru_id: candidate.id, errors: preview.errors}
 
-          preview.additions == [] ->
+          preview.additions == [] and preview.removals == [] ->
             %{status: "unchanged", derpibooru_id: candidate.id}
 
           true ->
@@ -245,7 +245,8 @@ defmodule Philomena.Derpibooru.Sweep do
                 %{
                   status: "merged",
                   derpibooru_id: candidate.id,
-                  tags_added: length(preview.additions)
+                  tags_added: length(preview.additions),
+                  tags_removed: length(preview.removals)
                 }
 
               {:ok, :unchanged} ->

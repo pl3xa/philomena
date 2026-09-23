@@ -11,6 +11,7 @@ const candidate = {
   artists: ['artist:example'],
   sources: ['https://example.com/art'],
   additions: ['new tag', '<script>alert(1)</script>'],
+  removals: [],
   errors: [],
   token: 'signed-preview',
 };
@@ -119,4 +120,16 @@ it('shows no matches and supports a subsequent manual search', async () => {
   button('.js-derpibooru-check').click();
   await waitFor(() => expect(status()).toContain('No matches'));
   expect(button('.js-derpibooru-manual').disabled).toBe(false);
+});
+
+it('shows rating removals and permits a merge with no additions', async () => {
+  request.mockResolvedValue(Response.json({ candidates: [{ ...candidate, additions: [], removals: ['grimdark'] }] }));
+  button('.js-derpibooru-check').click();
+  await waitFor(() => expect(status()).toContain('Review'));
+  expect(document.body.textContent).toContain('Rating tags to remove (1): grimdark');
+  expect(document.body.textContent).toContain('Derpibooru ratings take precedence');
+  expect(button('.derpibooru-tags__result button').disabled).toBe(false);
+  request.mockResolvedValue(Response.json({ result: 'merged' }));
+  button('.derpibooru-tags__result button').click();
+  await waitFor(() => expect(reload).toHaveBeenCalledTimes(1));
 });

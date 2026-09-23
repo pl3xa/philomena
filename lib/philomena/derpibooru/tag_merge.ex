@@ -1,11 +1,11 @@
 defmodule Philomena.Derpibooru.TagMerge do
-  @moduledoc "Read-only tag previews and atomic, attributed, add-only imports."
+  @moduledoc "Read-only tag previews and atomic, attributed imports with authoritative Derpibooru ratings."
 
   import Ecto.Query
   alias Ecto.Changeset
   alias Philomena.{Comments, Images, Notifications, Repo, Tags, Users, UserStatistics}
   alias Philomena.Comments.Comment
-  alias Philomena.Images.Image
+  alias Philomena.Images.{Image, TagValidator}
   alias Philomena.Tags.Tag
   alias PhilomenaWeb.Endpoint
 
@@ -20,6 +20,7 @@ defmodule Philomena.Derpibooru.TagMerge do
     image = Repo.preload(image, [:tags, :locked_tags], force: true)
     changeset = proposed_changes(image, candidate.tags)
     additions = names(Changeset.get_field(changeset, :added_tags))
+    removals = names(Changeset.get_field(changeset, :removed_tags))
     errors = Enum.map(changeset.errors, fn {_field, {message, _}} -> message end)
 
     token =
@@ -27,12 +28,13 @@ defmodule Philomena.Derpibooru.TagMerge do
         image_id: image.id,
         user_id: user.id,
         candidate: candidate,
-        additions: additions
+        additions: additions,
+        removals: removals
       })
 
     candidate
     |> Map.drop([:tags])
-    |> Map.merge(%{additions: additions, errors: errors, token: token})
+    |> Map.merge(%{additions: additions, removals: removals, errors: errors, token: token})
   end
 
   def merge(image, attribution, token) do
@@ -68,14 +70,22 @@ defmodule Philomena.Derpibooru.TagMerge do
     current = preview(image, payload.candidate, attribution[:user])
 
     cond do
-      current.additions == [] -> %{image: image, comment: nil, added: []}
-      current.additions != payload.additions -> Repo.rollback({:stale, current})
-      current.errors != [] -> Repo.rollback({:invalid_tags, current.errors})
-      true -> apply_merge(image, attribution, system, payload.candidate, current.additions)
+      current.errors != [] ->
+        Repo.rollback({:invalid_tags, current.errors})
+
+      current.additions == [] and current.removals == [] ->
+        %{image: image, comment: nil, added: [], removed: []}
+
+      current.additions != payload.additions or
+          current.removals != Map.get(payload, :removals, []) ->
+        Repo.rollback({:stale, current})
+
+      true ->
+        apply_merge(image, attribution, system, payload.candidate, current)
     end
   end
 
-  defp apply_merge(image, attribution, system, candidate, additions) do
+  defp apply_merge(image, attribution, system, candidate, preview) do
     old_names = names(image.tags)
 
     incoming =
@@ -83,16 +93,17 @@ defmodule Philomena.Derpibooru.TagMerge do
 
     attrs = %{
       "old_tag_input" => Enum.join(old_names, ","),
-      "tag_input" => Enum.join(old_names ++ incoming, ",")
+      "tag_input" => Enum.join((old_names -- preview.removals) ++ incoming, ",")
     }
 
     case Images.update_tags(image, attribution, attrs,
            defer_side_effects: true,
            excluded_tags: reserved_tags()
          ) do
-      {:ok, %{image: {updated, added, []}}} ->
+      {:ok, %{image: {updated, added, removed}}} ->
         # Alias/implication edits racing a preview must not silently change its promise.
-        if names(added) != additions, do: Repo.rollback(:preview_changed)
+        if names(added) != preview.additions or names(removed) != preview.removals,
+          do: Repo.rollback(:preview_changed)
 
         actor = attribution[:user]
         # Escape Markdown punctuation in the actor name; the source URL is server-generated.
@@ -100,7 +111,11 @@ defmodule Philomena.Derpibooru.TagMerge do
 
         body =
           "User ##{actor.id} (#{actor_name}) merged #{length(added)} tags from " <>
-            "[Derpibooru image ##{candidate.id}](#{candidate.url})."
+            "[Derpibooru image ##{candidate.id}](#{candidate.url})." <>
+            if(removed == [],
+              do: "",
+              else: " Removed superseded rating tags: #{Enum.join(names(removed), ", ")}."
+            )
 
         # A narrowly scoped audit entry, independent of ordinary comment locks/approval.
         comment =
@@ -114,7 +129,7 @@ defmodule Philomena.Derpibooru.TagMerge do
 
         Repo.update_all(from(i in Image, where: i.id == ^image.id), inc: [comments_count: 1])
         {:ok, _} = Notifications.create_image_comment_notification(system, updated, comment)
-        %{image: updated, comment: comment, added: added}
+        %{image: updated, comment: comment, added: added, removed: removed}
 
       {:error, :check_limits, _, _} ->
         Repo.rollback(:tag_limit)
@@ -131,12 +146,15 @@ defmodule Philomena.Derpibooru.TagMerge do
 
   defp after_merge({:ok, %{comment: nil}}, _attribution), do: {:ok, :unchanged}
 
-  defp after_merge({:ok, %{image: image, comment: comment, added: added}}, attribution) do
+  defp after_merge(
+         {:ok, %{image: image, comment: comment, added: added, removed: removed}},
+         attribution
+       ) do
     Images.update_tag_change_limits_after_commit(image, attribution)
     Comments.reindex_comments_on_image(image)
     Comments.reindex_comment(comment)
     Images.reindex_image(image)
-    Tags.reindex_tags(added)
+    Tags.reindex_tags(added ++ removed)
     UserStatistics.inc_stat(attribution[:user], :metadata_updates)
     UserStatistics.inc_stat(comment.user_id, :comments_posted)
 
@@ -146,7 +164,7 @@ defmodule Philomena.Derpibooru.TagMerge do
     Endpoint.broadcast!("firehose", "image:tag_update", %{
       image_id: image.id,
       added: names(added),
-      removed: []
+      removed: names(removed)
     })
 
     Endpoint.broadcast!(
@@ -201,9 +219,19 @@ defmodule Philomena.Derpibooru.TagMerge do
       image,
       %{},
       image.tags,
-      image.tags ++ resolved,
+      retained_tags(image.tags, resolved) ++ resolved,
       image.locked_tags ++ excluded
     )
+  end
+
+  defp retained_tags(tags, incoming) do
+    ratings = TagValidator.all_ratings()
+
+    if Enum.any?(incoming, &MapSet.member?(ratings, &1.name)) do
+      Enum.reject(tags, &MapSet.member?(ratings, &1.name))
+    else
+      tags
+    end
   end
 
   defp reserved?(name), do: name == "public-share" or String.starts_with?(name, "temp-share:")

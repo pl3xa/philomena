@@ -10,7 +10,7 @@ defmodule Philomena.Derpibooru.TagMergeTest do
   alias Philomena.Tags.Tag
 
   setup do
-    user = confirmed_user_fixture(%{name: "editor"})
+    user = confirmed_user_fixture(%{name: "editor"}) |> change(verified: true) |> Repo.update!()
     system = confirmed_user_fixture(%{name: "system"})
 
     tags =
@@ -249,8 +249,98 @@ defmodule Philomena.Derpibooru.TagMergeTest do
     assert {:ok, :merged} = TagMerge.merge(ctx.image, ctx.attribution, updated.token)
   end
 
-  test "rating conflicts fail without removing existing tags or creating comments", ctx do
-    preview = TagMerge.preview(ctx.image, candidate(["explicit", "new tag"]), ctx.user)
+  test "Derpibooru replaces local ratings and records removals in history and broadcasts", ctx do
+    Phoenix.PubSub.subscribe(Philomena.PubSub, "firehose")
+    preview = TagMerge.preview(ctx.image, candidate(["explicit", "grimdark"]), ctx.user)
+    assert preview.additions == ["explicit", "grimdark"]
+    assert preview.removals == ["safe"]
+    assert preview.errors == []
+    assert {:ok, :merged} = TagMerge.merge(ctx.image, ctx.attribution, preview.token)
+    assert tag_names(ctx.image) == ["explicit", "grimdark", "pony", "solo"]
+    history = Repo.all(Philomena.TagChanges.Tag) |> Repo.preload(:tag)
+    assert Enum.any?(history, &(&1.tag.name == "safe" and not &1.added))
+    assert Repo.one!(Comment).body =~ "Removed superseded rating tags: safe."
+
+    assert_receive %Phoenix.Socket.Broadcast{
+      event: "image:tag_update",
+      payload: %{added: ["explicit", "grimdark"], removed: ["safe"]}
+    }
+
+    assert {:ok, :unchanged} = TagMerge.merge(ctx.image, ctx.attribution, preview.token)
+
+    preview = TagMerge.preview(ctx.image, candidate(["safe"]), ctx.user)
+    assert preview.removals == ["explicit", "grimdark"]
+    assert {:ok, :merged} = TagMerge.merge(ctx.image, ctx.attribution, preview.token)
+    assert tag_names(ctx.image) == ["pony", "safe", "solo"]
+  end
+
+  test "rating-only removals also merge through the sweep", ctx do
+    assert {:ok, _} =
+             Images.update_tags(ctx.image, ctx.attribution, %{
+               "old_tag_input" => "safe, pony, solo",
+               "tag_input" => "explicit, grimdark, pony, solo"
+             })
+
+    source = candidate(["explicit"]) |> Map.merge(%{width: 100, height: 100})
+    preview = TagMerge.preview(ctx.image, source, ctx.user)
+    assert preview.additions == []
+    assert preview.removals == ["grimdark"]
+    assert preview.errors == []
+
+    assert %{status: "merged", tags_added: 0, tags_removed: 1} =
+             Philomena.Derpibooru.Sweep.merge_match(ctx.image, [source], ctx.attribution)
+
+    assert tag_names(ctx.image) == ["explicit", "pony", "solo"]
+  end
+
+  test "rating aliases replace existing ratings", ctx do
+    {:ok, alias_tag} = Tags.create_tag(%{name: "rating alias"})
+    {:ok, explicit} = Tags.create_tag(%{name: "explicit"})
+    alias_tag |> change(aliased_tag_id: explicit.id) |> Repo.update!()
+    preview = TagMerge.preview(ctx.image, candidate(["rating alias"]), ctx.user)
+    assert preview.additions == ["explicit"]
+    assert preview.removals == ["safe"]
+    assert {:ok, :merged} = TagMerge.merge(ctx.image, ctx.attribution, preview.token)
+  end
+
+  test "sources without ratings preserve the local rating", ctx do
+    preview = TagMerge.preview(ctx.image, candidate(["new tag"]), ctx.user)
+    assert preview.removals == []
+    assert {:ok, :merged} = TagMerge.merge(ctx.image, ctx.attribution, preview.token)
+    assert "safe" in tag_names(ctx.image)
+  end
+
+  test "a changed removal requires a fresh preview even when additions match", ctx do
+    preview = TagMerge.preview(ctx.image, candidate(["explicit"]), ctx.user)
+
+    assert {:ok, _} =
+             Images.update_tags(ctx.image, ctx.attribution, %{
+               "old_tag_input" => "safe, pony, solo",
+               "tag_input" => "suggestive, pony, solo"
+             })
+
+    assert {:error, {:stale, updated}} = TagMerge.merge(ctx.image, ctx.attribution, preview.token)
+    assert updated.additions == preview.additions
+    assert updated.removals == ["suggestive"]
+    assert Repo.aggregate(Comment, :count) == 0
+    assert {:ok, :merged} = TagMerge.merge(ctx.image, ctx.attribution, updated.token)
+  end
+
+  test "rating replacements respect locked tags", ctx do
+    safe = Tags.get_tag_by_name("safe")
+    ctx.image |> change() |> put_assoc(:locked_tags, [safe]) |> Repo.update!()
+    preview = TagMerge.preview(ctx.image, candidate(["explicit"]), ctx.user)
+    assert preview.removals == []
+    assert preview.errors != []
+
+    assert {:error, {:invalid_tags, _}} =
+             TagMerge.merge(ctx.image, ctx.attribution, preview.token)
+
+    assert tag_names(ctx.image) == ["pony", "safe", "solo"]
+  end
+
+  test "invalid source ratings fail without removing existing tags or creating comments", ctx do
+    preview = TagMerge.preview(ctx.image, candidate(["safe", "explicit", "new tag"]), ctx.user)
     assert preview.errors != []
 
     assert {:error, {:invalid_tags, _}} =
@@ -314,7 +404,7 @@ defmodule Philomena.Derpibooru.TagMergeTest do
       "CREATE TRIGGER reject_derpi_audit BEFORE INSERT ON comments FOR EACH ROW EXECUTE FUNCTION pg_temp.reject_derpi_audit()"
     )
 
-    preview = TagMerge.preview(ctx.image, candidate(["rollback tag"]), ctx.user)
+    preview = TagMerge.preview(ctx.image, candidate(["explicit", "rollback tag"]), ctx.user)
 
     assert {:error, :merge_failed} = TagMerge.merge(ctx.image, ctx.attribution, preview.token)
 

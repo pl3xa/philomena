@@ -8,6 +8,7 @@ interface Candidate {
   artists: string[];
   sources: string[];
   additions: string[];
+  removals: string[];
   errors: string[];
   token: string;
 }
@@ -83,6 +84,11 @@ export function setupDerpibooruTags(reload = () => window.location.reload()) {
         ? `Tags to add (${candidate.additions.length}): ${candidate.additions.join(', ')}`
         : 'No new tags';
       details.append(tags);
+      if (candidate.removals.length) {
+        const removals = document.createElement('p');
+        removals.textContent = `Rating tags to remove (${candidate.removals.length}): ${candidate.removals.join(', ')}. Derpibooru ratings take precedence.`;
+        details.append(removals);
+      }
       if (candidate.errors.length) {
         const error = document.createElement('p');
         error.textContent = `Cannot merge: ${candidate.errors.join('; ')}. Existing tags will be preserved.`;
@@ -92,7 +98,9 @@ export function setupDerpibooruTags(reload = () => window.location.reload()) {
       merge.type = 'button';
       merge.className = 'button';
       merge.textContent = 'Merge in tags';
-      merge.dataset.unavailable = String(!candidate.additions.length || Boolean(candidate.errors.length));
+      merge.dataset.unavailable = String(
+        (!candidate.additions.length && !candidate.removals.length) || Boolean(candidate.errors.length),
+      );
       merge.disabled = merge.dataset.unavailable === 'true';
       merge.addEventListener('click', () => mergeCandidate(candidate));
       row.append(details, merge);
@@ -118,7 +126,7 @@ export function setupDerpibooruTags(reload = () => window.location.reload()) {
       candidates = data.candidates || [];
       render();
       status!.textContent = candidates.length
-        ? 'Review the matches and tag additions before merging.'
+        ? 'Review the matches and tag changes before merging.'
         : 'No matches found. You can try a manual ID.';
     } catch (error) {
       status!.textContent = error instanceof Error ? error.message : 'Could not check Derpibooru. Please try again.';
@@ -136,7 +144,7 @@ export function setupDerpibooruTags(reload = () => window.location.reload()) {
       if (data.candidate) {
         candidates = candidates.map(item => (item.id === candidate.id ? data.candidate! : item));
         render();
-        status!.textContent = data.error || 'Review the updated additions before merging.';
+        status!.textContent = data.error || 'Review the updated tag changes before merging.';
       } else {
         reload();
       }

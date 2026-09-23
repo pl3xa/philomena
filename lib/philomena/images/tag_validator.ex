@@ -109,7 +109,7 @@ defmodule Philomena.Images.TagValidator do
     |> MapSet.new()
   end
 
-  defp all_ratings do
+  def all_ratings do
     safe_rating()
     |> MapSet.union(sexual_ratings())
     |> MapSet.union(horror_ratings())

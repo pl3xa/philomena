@@ -50,7 +50,7 @@ defmodule PhilomenaWeb.Image.DerpibooruTagController do
         conn
         |> put_status(:conflict)
         |> json(%{
-          error: "Tags changed since this preview. Review the updated additions and try again.",
+          error: "Tags changed since this preview. Review the updated tag changes and try again.",
           candidate: candidate
         })
 

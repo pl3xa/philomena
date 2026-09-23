@@ -82,11 +82,12 @@ And if everything goes wrong:
 
 Image pages offer reverse lookup or a manual Derpibooru ID to signed-in metadata
 editors. Reverse lookup creates the same one-hour temporary share as the timer
-button. Each candidate previews local tag additions, including aliases,
-implications, and locked-tag rules. Merging preserves existing tags and writes an
-approved audit comment as `system`, naming the initiating user and source image.
-Conflicting rating tags must be resolved manually before merging. Previews expire
-after 15 minutes; changed additions require another review.
+button. Each candidate previews local tag additions and rating removals, including aliases,
+implications, and locked-tag rules. Derpibooru ratings replace existing ratings;
+other existing tags are preserved. If the source has no rating, local ratings stay.
+Merging writes an approved audit comment as `system`, naming the initiating user,
+source image, and removed ratings. Invalid source ratings still block merging.
+Previews expire after 15 minutes; changed additions or removals require another review.
 
 Set `DERPIBOORU_API_KEY` in the existing 1Password Environment, run `bin/sync-env`,
 and recreate the app container to load it. Never put its value in tracked files.
