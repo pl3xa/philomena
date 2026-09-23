@@ -32,6 +32,8 @@ defmodule Philomena.Tags.Tag do
     "video"
   ]
 
+  @metadata_prefixes ~w(server: messageid: authorid: originalfilename: channel:)
+
   @namespace_categories %{
     "artist" => "origin",
     "art pack" => "content-fanmade",
@@ -271,10 +273,18 @@ defmodule Philomena.Tags.Tag do
     end
   end
 
+  @doc "Metadata prefixes assigned the spoiler category, also used by the backfill task."
+  def metadata_prefixes, do: @metadata_prefixes
+
   defp put_namespace_category(changeset) do
     namespace = changeset |> get_field(:namespace)
 
-    case @namespace_categories[namespace] do
+    category =
+      if String.starts_with?(to_string(get_field(changeset, :name)), @metadata_prefixes),
+        do: "spoiler",
+        else: @namespace_categories[namespace]
+
+    case category do
       nil -> changeset
       category -> change(changeset, category: category)
     end

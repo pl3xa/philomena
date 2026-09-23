@@ -13,6 +13,74 @@ defmodule Philomena.TagsTest do
     %{source: source}
   end
 
+  test "metadata tags receive the spoiler category through both creation paths" do
+    for prefix <- ~w(server: messageid: authorid: originalfilename: channel:) do
+      assert {:ok, tag} = Tags.create_tag(%{name: prefix <> "single"})
+      assert tag.category == "spoiler"
+      assert tag.name == prefix <> "single"
+
+      [tag] = Tags.get_or_create_tags(String.upcase(prefix) <> "bulk")
+      assert tag.category == "spoiler"
+      assert tag.name == prefix <> "bulk"
+    end
+
+    for name <- ["server", "myserver:example", "artist:example", "ordinary tag"] do
+      {:ok, tag} = Tags.create_tag(%{name: name})
+      refute tag.category == "spoiler"
+    end
+  end
+
+  test "metadata backfill corrects existing categories and is safe to rerun" do
+    tags =
+      for prefix <- ~w(server: messageid: authorid: originalfilename: channel:),
+          category <- [nil, "origin", "spoiler"] do
+        {:ok, tag} = Tags.create_tag(%{name: prefix <> "legacy #{category}"})
+        tag |> change(category: category) |> Repo.update!()
+      end
+
+    {:ok, ordinary} = Tags.create_tag(%{name: "artist:unrelated"})
+
+    image =
+      Repo.insert!(%Philomena.Images.Image{
+        tags: tags,
+        image_format: "png",
+        image_is_animated: false,
+        first_seen_at: DateTime.utc_now(:second),
+        image_mime_type: "image/png",
+        image_width: 100,
+        image_height: 100,
+        image_size: 100,
+        image_name: "metadata.png",
+        image: "metadata.png",
+        image_sha512_hash: String.duplicate("a", 128),
+        approved: true
+      })
+
+    for _ <- 1..2 do
+      Mix.Tasks.Tags.BackfillMetadataCategories.run([])
+
+      for tag <- tags do
+        updated = Repo.get!(Tag, tag.id)
+        assert updated.category == "spoiler"
+        assert updated.name == tag.name
+        assert updated.slug == tag.slug
+      end
+
+      assert Repo.get!(Tag, ordinary.id).category == "origin"
+
+      url = Philomena.SearchPolicy.opensearch_url()
+      response = Req.get!("#{url}/images/_doc/#{image.id}")
+      assert response.status == 200
+      assert response.body["_source"]["spoiler_tag_count"] == length(tags)
+
+      for tag <- tags do
+        response = Req.get!("#{url}/tags/_doc/#{tag.id}")
+        assert response.status == 200
+        assert response.body["_source"]["category"] == "spoiler"
+      end
+    end
+  end
+
   test "aliases to an existing normalized target and queues the correct direction", %{
     source: source
   } do
