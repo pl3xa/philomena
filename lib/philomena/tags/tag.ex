@@ -32,7 +32,14 @@ defmodule Philomena.Tags.Tag do
     "video"
   ]
 
-  @metadata_prefixes ~w(server: messageid: authorid: originalfilename: channel:)
+  @metadata_categories %{
+    "server:" => "spoiler",
+    "messageid:" => "spoiler",
+    "authorid:" => "spoiler",
+    "originalfilename:" => "content-official",
+    "channel:" => "spoiler",
+    "date:" => "spoiler"
+  }
 
   @namespace_categories %{
     "artist" => "origin",
@@ -273,16 +280,17 @@ defmodule Philomena.Tags.Tag do
     end
   end
 
-  @doc "Metadata prefixes assigned the spoiler category, also used by the backfill task."
-  def metadata_prefixes, do: @metadata_prefixes
+  @doc "Metadata prefix categories, also used by the backfill task."
+  def metadata_categories, do: @metadata_categories
 
   defp put_namespace_category(changeset) do
     namespace = changeset |> get_field(:namespace)
+    name = to_string(get_field(changeset, :name))
 
     category =
-      if String.starts_with?(to_string(get_field(changeset, :name)), @metadata_prefixes),
-        do: "spoiler",
-        else: @namespace_categories[namespace]
+      Enum.find_value(@metadata_categories, @namespace_categories[namespace], fn
+        {prefix, category} -> if String.starts_with?(name, prefix), do: category
+      end)
 
     case category do
       nil -> changeset

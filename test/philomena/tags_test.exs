@@ -4,6 +4,15 @@ defmodule Philomena.TagsTest do
   alias Philomena.Tags
   alias Philomena.Tags.Tag
 
+  @metadata_categories [
+    {"server:", "spoiler"},
+    {"messageid:", "spoiler"},
+    {"authorid:", "spoiler"},
+    {"originalfilename:", "content-official"},
+    {"channel:", "spoiler"},
+    {"date:", "spoiler"}
+  ]
+
   defmodule UnavailableQueue do
     def enqueue(_pid, _queue, _worker, _args, _options), do: {:error, :unavailable}
   end
@@ -13,36 +22,46 @@ defmodule Philomena.TagsTest do
     %{source: source}
   end
 
-  test "metadata tags receive the spoiler category through both creation paths" do
-    for prefix <- ~w(server: messageid: authorid: originalfilename: channel:) do
+  test "metadata tags receive their category through both creation paths" do
+    for {prefix, category} <- @metadata_categories do
       assert {:ok, tag} = Tags.create_tag(%{name: prefix <> "single"})
-      assert tag.category == "spoiler"
+      assert tag.category == category
       assert tag.name == prefix <> "single"
 
       [tag] = Tags.get_or_create_tags(String.upcase(prefix) <> "bulk")
-      assert tag.category == "spoiler"
+      assert tag.category == category
       assert tag.name == prefix <> "bulk"
     end
 
-    for name <- ["server", "myserver:example", "artist:example", "ordinary tag"] do
+    for name <- [
+          "server",
+          "myserver:example",
+          "date",
+          "update:example",
+          "originalfilename",
+          "myoriginalfilename:example",
+          "artist:example",
+          "ordinary tag"
+        ] do
       {:ok, tag} = Tags.create_tag(%{name: name})
       refute tag.category == "spoiler"
+      refute tag.category == "content-official"
     end
   end
 
   test "metadata backfill corrects existing categories and is safe to rerun" do
     tags =
-      for prefix <- ~w(server: messageid: authorid: originalfilename: channel:),
-          category <- [nil, "origin", "spoiler"] do
+      for {prefix, expected_category} <- @metadata_categories,
+          category <- [nil, "origin", "spoiler", "content-official"] do
         {:ok, tag} = Tags.create_tag(%{name: prefix <> "legacy #{category}"})
-        tag |> change(category: category) |> Repo.update!()
+        {tag |> change(category: category) |> Repo.update!(), expected_category}
       end
 
     {:ok, ordinary} = Tags.create_tag(%{name: "artist:unrelated"})
 
     image =
       Repo.insert!(%Philomena.Images.Image{
-        tags: tags,
+        tags: Enum.map(tags, &elem(&1, 0)),
         image_format: "png",
         image_is_animated: false,
         first_seen_at: DateTime.utc_now(:second),
@@ -59,9 +78,9 @@ defmodule Philomena.TagsTest do
     for _ <- 1..2 do
       Mix.Tasks.Tags.BackfillMetadataCategories.run([])
 
-      for tag <- tags do
+      for {tag, expected_category} <- tags do
         updated = Repo.get!(Tag, tag.id)
-        assert updated.category == "spoiler"
+        assert updated.category == expected_category
         assert updated.name == tag.name
         assert updated.slug == tag.slug
       end
@@ -71,12 +90,14 @@ defmodule Philomena.TagsTest do
       url = Philomena.SearchPolicy.opensearch_url()
       response = Req.get!("#{url}/images/_doc/#{image.id}")
       assert response.status == 200
-      assert response.body["_source"]["spoiler_tag_count"] == length(tags)
 
-      for tag <- tags do
+      assert response.body["_source"]["spoiler_tag_count"] ==
+               Enum.count(tags, fn {_, category} -> category == "spoiler" end)
+
+      for {tag, expected_category} <- tags do
         response = Req.get!("#{url}/tags/_doc/#{tag.id}")
         assert response.status == 200
-        assert response.body["_source"]["category"] == "spoiler"
+        assert response.body["_source"]["category"] == expected_category
       end
     end
   end

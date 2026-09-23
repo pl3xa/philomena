@@ -7,25 +7,27 @@ defmodule Mix.Tasks.Tags.BackfillMetadataCategories do
   alias Philomena.Tags.Tag
   alias PhilomenaQuery.Search
 
-  @shortdoc "Categorize metadata tags as spoilers and refresh affected search records"
+  @shortdoc "Apply metadata tag categories and refresh affected search records"
   @requirements ["app.start"]
 
   @impl Mix.Task
   def run([]) do
     matches =
-      Enum.reduce(Tag.metadata_prefixes(), dynamic(false), fn prefix, query ->
+      Enum.reduce(Tag.metadata_categories(), dynamic(false), fn {prefix, category}, query ->
         pattern = prefix <> "%"
+
+        {count, _} =
+          Tag
+          |> where([t], like(t.name, ^pattern))
+          |> where([t], is_nil(t.category) or t.category != ^category)
+          |> Repo.update_all(set: [category: category, updated_at: DateTime.utc_now(:second)])
+
+        Mix.shell().info("Updated #{count} #{prefix} tags to #{category}")
+
         dynamic([t], ^query or like(t.name, ^pattern))
       end)
 
     tags = where(Tag, ^matches)
-
-    {count, _} =
-      tags
-      |> where([t], is_nil(t.category) or t.category != "spoiler")
-      |> Repo.update_all(set: [category: "spoiler", updated_at: DateTime.utc_now(:second)])
-
-    Mix.shell().info("Updated #{count} metadata tags")
 
     # Reindex every matching record even on reruns, so an interrupted index refresh is recoverable.
     tags
