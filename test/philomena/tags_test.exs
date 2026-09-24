@@ -8,9 +8,11 @@ defmodule Philomena.TagsTest do
     {"server:", "spoiler"},
     {"messageid:", "spoiler"},
     {"authorid:", "spoiler"},
+    {"authorusername:", "spoiler"},
     {"originalfilename:", "content-official"},
     {"channel:", "spoiler"},
-    {"date:", "spoiler"}
+    {"date:", "spoiler"},
+    {"temp-share:", "error"}
   ]
 
   defmodule UnavailableQueue do
@@ -40,19 +42,24 @@ defmodule Philomena.TagsTest do
           "update:example",
           "originalfilename",
           "myoriginalfilename:example",
+          "temp-share",
+          "mytemp-share:example",
+          "authorusername",
+          "myauthorusername:example",
           "artist:example",
           "ordinary tag"
         ] do
       {:ok, tag} = Tags.create_tag(%{name: name})
       refute tag.category == "spoiler"
       refute tag.category == "content-official"
+      refute tag.category == "error"
     end
   end
 
   test "metadata backfill corrects existing categories and is safe to rerun" do
     tags =
       for {prefix, expected_category} <- @metadata_categories,
-          category <- [nil, "origin", "spoiler", "content-official"] do
+          category <- [nil, "origin", "spoiler", "content-official", "error"] do
         {:ok, tag} = Tags.create_tag(%{name: prefix <> "legacy #{category}"})
         {tag |> change(category: category) |> Repo.update!(), expected_category}
       end
@@ -93,6 +100,9 @@ defmodule Philomena.TagsTest do
 
       assert response.body["_source"]["spoiler_tag_count"] ==
                Enum.count(tags, fn {_, category} -> category == "spoiler" end)
+
+      assert response.body["_source"]["error_tag_count"] ==
+               Enum.count(tags, fn {_, category} -> category == "error" end)
 
       for {tag, expected_category} <- tags do
         response = Req.get!("#{url}/tags/_doc/#{tag.id}")

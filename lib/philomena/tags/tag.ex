@@ -36,9 +36,11 @@ defmodule Philomena.Tags.Tag do
     "server:" => "spoiler",
     "messageid:" => "spoiler",
     "authorid:" => "spoiler",
+    "authorusername:" => "spoiler",
     "originalfilename:" => "content-official",
     "channel:" => "spoiler",
-    "date:" => "spoiler"
+    "date:" => "spoiler",
+    "temp-share:" => "error"
   }
 
   @namespace_categories %{
