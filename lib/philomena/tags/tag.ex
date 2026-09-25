@@ -34,11 +34,13 @@ defmodule Philomena.Tags.Tag do
 
   @metadata_categories %{
     "server:" => "spoiler",
+    "guildid:" => "spoiler",
     "messageid:" => "spoiler",
     "authorid:" => "spoiler",
     "authorusername:" => "spoiler",
     "originalfilename:" => "content-official",
     "channel:" => "spoiler",
+    "channelid:" => "spoiler",
     "date:" => "spoiler",
     "temp-share:" => "error"
   }

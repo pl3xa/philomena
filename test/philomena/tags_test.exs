@@ -6,11 +6,13 @@ defmodule Philomena.TagsTest do
 
   @metadata_categories [
     {"server:", "spoiler"},
+    {"guildid:", "spoiler"},
     {"messageid:", "spoiler"},
     {"authorid:", "spoiler"},
     {"authorusername:", "spoiler"},
     {"originalfilename:", "content-official"},
     {"channel:", "spoiler"},
+    {"channelid:", "spoiler"},
     {"date:", "spoiler"},
     {"temp-share:", "error"}
   ]
@@ -38,6 +40,10 @@ defmodule Philomena.TagsTest do
     for name <- [
           "server",
           "myserver:example",
+          "guildid",
+          "myguildid:example",
+          "channelid",
+          "mychannelid:example",
           "date",
           "update:example",
           "originalfilename",
